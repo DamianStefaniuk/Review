@@ -1,0 +1,89 @@
+{
+  "id": 41,
+  "name": "Sprint 41",
+  "status": "closed",
+  "startDate": "2025-12-23",
+  "endDate": "2026-01-03",
+  "goals": [
+    {
+      "id": 1,
+      "title": "System powiadomień push",
+      "client": "Klient A",
+      "tag": "cel1",
+      "completed": true,
+      "completionPercent": 100,
+      "tasks": ["PROJ-091", "PROJ-092", "PROJ-093"],
+      "comments": [
+        {
+          "id": "c1",
+          "text": "System powiadomień uruchomiony produkcyjnie 02.01.2026",
+          "author": "Damian",
+          "createdAt": "2026-01-02T16:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Migracja bazy danych do PostgreSQL 16",
+      "client": null,
+      "tag": "cel2",
+      "completed": true,
+      "completionPercent": 100,
+      "tasks": ["PROJ-094", "PROJ-095"],
+      "comments": []
+    }
+  ],
+  "achievements": [
+    {
+      "id": 1,
+      "title": "Świąteczne życzenia w aplikacji",
+      "client": "Klient A",
+      "completed": true
+    }
+  ],
+  "tasks": [
+    {
+      "key": "PROJ-091",
+      "summary": "Konfiguracja Firebase Cloud Messaging",
+      "status": "Done",
+      "labels": ["cel1"],
+      "epic": "Powiadomienia",
+      "assignee": "Anna"
+    },
+    {
+      "key": "PROJ-092",
+      "summary": "Backend obsługi powiadomień",
+      "status": "Done",
+      "labels": ["cel1"],
+      "epic": "Powiadomienia",
+      "assignee": "Damian"
+    },
+    {
+      "key": "PROJ-093",
+      "summary": "Frontend - UI powiadomień",
+      "status": "Done",
+      "labels": ["cel1"],
+      "epic": "Powiadomienia",
+      "assignee": "Piotr"
+    },
+    {
+      "key": "PROJ-094",
+      "summary": "Skrypt migracji PostgreSQL",
+      "status": "Done",
+      "labels": ["cel2"],
+      "epic": "Infrastruktura",
+      "assignee": "Damian"
+    },
+    {
+      "key": "PROJ-095",
+      "summary": "Testy regresyjne po migracji",
+      "status": "Done",
+      "labels": ["cel2"],
+      "epic": "Infrastruktura",
+      "assignee": "Anna"
+    }
+  ],
+  "nextSprintPlans": "",
+  "jiraTimelineUrl": "https://jira.example.com/jira/software/projects/PROJ/boards/123/timeline?sprint=41",
+  "closedAt": "2026-01-03T17:00:00Z"
+}

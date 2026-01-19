@@ -1,0 +1,13 @@
+{
+  "github": {
+    "owner": "DamianStefaniuk",
+    "repo": "Review",
+    "branch": "main",
+    "oauthClientId": "Ov23livS48GuroREcyd3",
+    "organization": "plumspzoo"
+  },
+  "labels": {
+    "goalPrefix": "cel",
+    "clientPattern": "\\[([^\\]]+)\\]"
+  }
+}

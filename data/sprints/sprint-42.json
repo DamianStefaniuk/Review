@@ -1,0 +1,158 @@
+{
+  "id": 42,
+  "name": "Sprint 42",
+  "status": "active",
+  "startDate": "2026-01-06",
+  "endDate": "2026-01-17",
+  "goals": [
+    {
+      "id": 1,
+      "title": "Zarządca nagrzewnica/agregat/chłodnica",
+      "client": "Klient A",
+      "tag": "cel1",
+      "completed": false,
+      "completionPercent": 75,
+      "tasks": ["PROJ-101", "PROJ-102", "PROJ-103"],
+      "comments": [
+        {
+          "id": "c1",
+          "text": "Dokumentacja techniczna została zaktualizowana. Link: https://confluence.example.com/display/DOC/Zarzadca",
+          "author": "Damian",
+          "createdAt": "2026-01-15T10:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Integracja z systemem rozliczeniowym",
+      "client": "Klient B",
+      "tag": "cel2",
+      "completed": false,
+      "completionPercent": 50,
+      "tasks": ["PROJ-104", "PROJ-105"],
+      "comments": []
+    },
+    {
+      "id": 3,
+      "title": "Optymalizacja wydajności dashboardu",
+      "client": "Klient A",
+      "tag": "cel3",
+      "completed": true,
+      "completionPercent": 100,
+      "tasks": ["PROJ-106", "PROJ-107", "PROJ-108"],
+      "comments": [
+        {
+          "id": "c2",
+          "text": "Zredukowano czas ładowania o 60%. Szczegóły w raporcie wydajności.",
+          "author": "Anna",
+          "createdAt": "2026-01-14T14:20:00Z"
+        }
+      ]
+    }
+  ],
+  "achievements": [
+    {
+      "id": 1,
+      "title": "Zmiana logo na platformie klienta",
+      "client": "Klient B",
+      "completed": true
+    },
+    {
+      "id": 2,
+      "title": "Hotfix: naprawa błędu logowania SSO",
+      "client": "Klient C",
+      "completed": true
+    },
+    {
+      "id": 3,
+      "title": "Aktualizacja dokumentacji API",
+      "client": null,
+      "completed": true
+    }
+  ],
+  "tasks": [
+    {
+      "key": "PROJ-101",
+      "summary": "Implementacja zarządcy nagrzewnicy",
+      "status": "Done",
+      "labels": ["cel1"],
+      "epic": "Zarządca urządzeń",
+      "assignee": "Damian"
+    },
+    {
+      "key": "PROJ-102",
+      "summary": "Implementacja zarządcy agregatu",
+      "status": "Done",
+      "labels": ["cel1"],
+      "epic": "Zarządca urządzeń",
+      "assignee": "Damian"
+    },
+    {
+      "key": "PROJ-103",
+      "summary": "Implementacja zarządcy chłodnicy",
+      "status": "In Progress",
+      "labels": ["cel1"],
+      "epic": "Zarządca urządzeń",
+      "assignee": "Anna"
+    },
+    {
+      "key": "PROJ-104",
+      "summary": "Endpoint integracji z systemem rozliczeniowym",
+      "status": "In Progress",
+      "labels": ["cel2"],
+      "epic": "Integracje",
+      "assignee": "Piotr"
+    },
+    {
+      "key": "PROJ-105",
+      "summary": "Mapowanie danych rozliczeniowych",
+      "status": "To Do",
+      "labels": ["cel2"],
+      "epic": "Integracje",
+      "assignee": "Piotr"
+    },
+    {
+      "key": "PROJ-106",
+      "summary": "Optymalizacja zapytań SQL dashboardu",
+      "status": "Done",
+      "labels": ["cel3"],
+      "epic": "Wydajność",
+      "assignee": "Anna"
+    },
+    {
+      "key": "PROJ-107",
+      "summary": "Implementacja cache'owania danych",
+      "status": "Done",
+      "labels": ["cel3"],
+      "epic": "Wydajność",
+      "assignee": "Anna"
+    },
+    {
+      "key": "PROJ-108",
+      "summary": "Lazy loading komponentów",
+      "status": "Done",
+      "labels": ["cel3"],
+      "epic": "Wydajność",
+      "assignee": "Damian"
+    },
+    {
+      "key": "PROJ-109",
+      "summary": "Aktualizacja zależności Node.js",
+      "status": "Done",
+      "labels": [],
+      "epic": "Maintenance",
+      "assignee": "Piotr"
+    },
+    {
+      "key": "PROJ-110",
+      "summary": "Code review PR #245",
+      "status": "Done",
+      "labels": [],
+      "epic": null,
+      "assignee": "Damian"
+    }
+  ],
+  "nextSprintPlans": "## Planowane cele\n\n- **Integracja z API płatności** - dokończenie integracji z systemem rozliczeniowym\n- **Panel administracyjny** - nowy moduł zarządzania użytkownikami\n- **Testy E2E** - pokrycie krytycznych ścieżek użytkownika\n\n## Uwagi\n\n- Planowany urlop Anny: 20-24 stycznia\n- Demo dla klienta B: 22 stycznia",
+  "jiraTimelineUrl": "https://jira.example.com/jira/software/projects/PROJ/boards/123/timeline",
+  "closedAt": null
+}
