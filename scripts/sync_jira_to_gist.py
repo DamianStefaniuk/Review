@@ -59,7 +59,8 @@ class GistClient:
         self.api_url = 'https://api.github.com'
 
         if not self.gist_id or not self.token:
-            logger.warning("Missing Gist configuration. Set GIST_ID and GIST_TOKEN.")
+            logger.error("Missing Gist configuration. Set GIST_ID and GIST_TOKEN as repository secrets.")
+            sys.exit(1)
 
         self.session = requests.Session()
         self.session.headers.update({

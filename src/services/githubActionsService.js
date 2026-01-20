@@ -59,6 +59,9 @@ export async function triggerJiraSyncWorkflow() {
   )
 
   if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error('Brak uprawnień do uruchomienia synchronizacji. Token wymaga uprawnienia "workflow".')
+    }
     const error = await response.json().catch(() => ({}))
     throw new Error(`Failed to trigger workflow: ${error.message || response.status}`)
   }

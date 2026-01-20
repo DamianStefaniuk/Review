@@ -3,27 +3,23 @@
  * Handles storing and retrieving sprint data from Gist
  */
 
+import { useAuthStore } from '../stores/authStore'
+
 const GITHUB_API_URL = 'https://api.github.com'
-const GIST_CONFIG_KEY = 'gist_config'
 
 /**
- * Get Gist configuration from localStorage or env variables
+ * Get Gist configuration from environment variables
+ * Returns null if user is not authenticated
  */
 export function getGistConfig() {
-  // First try localStorage
-  const stored = localStorage.getItem(GIST_CONFIG_KEY)
-  if (stored) {
-    try {
-      const config = JSON.parse(stored)
-      if (config.gistId && config.gistToken) {
-        return config
-      }
-    } catch {
-      // Invalid JSON, fall through to env
-    }
+  const authStore = useAuthStore()
+
+  // Return null if user is not authenticated
+  if (!authStore.isAuthenticated) {
+    return null
   }
 
-  // Fallback to environment variables
+  // Use environment variables
   const gistId = import.meta.env.VITE_GIST_ID
   const gistToken = import.meta.env.VITE_GIST_TOKEN
 
@@ -35,28 +31,12 @@ export function getGistConfig() {
 }
 
 /**
- * Save Gist configuration to localStorage
- */
-export function saveGistConfig(gistId, gistToken) {
-  localStorage.setItem(GIST_CONFIG_KEY, JSON.stringify({
-    gistId,
-    gistToken
-  }))
-}
-
-/**
- * Clear Gist configuration from localStorage
- */
-export function clearGistConfig() {
-  localStorage.removeItem(GIST_CONFIG_KEY)
-}
-
-/**
- * Check if Gist is configured
+ * Check if Gist is configured (env variables are set)
  */
 export function isGistConfigured() {
-  const config = getGistConfig()
-  return !!(config && config.gistId && config.gistToken)
+  const gistId = import.meta.env.VITE_GIST_ID
+  const gistToken = import.meta.env.VITE_GIST_TOKEN
+  return !!(gistId && gistToken)
 }
 
 /**

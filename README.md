@@ -406,7 +406,7 @@ Zadania bez etykiet `cel*` pojawią się w sekcji "Wszystkie zadania".
 ### Dodawanie komentarzy:
 
 1. Zaloguj się przez GitHub (wymagane)
-2. Skonfiguruj Gist (przycisk "Gist" w nagłówku)
+2. Upewnij się, że Gist jest skonfigurowany (secrets w repozytorium)
 3. Kliknij na cel w przeglądzie
 4. Przewiń do sekcji "Komentarze"
 5. Wpisz treść komentarza
@@ -424,7 +424,7 @@ Komentarze są automatycznie zapisywane do GitHub Gist (nie są tworzone commity
 ### Zamykanie sprintu:
 
 1. Zaloguj się przez GitHub (wymagane)
-2. Skonfiguruj Gist (przycisk "Gist" w nagłówku)
+2. Upewnij się, że Gist jest skonfigurowany (secrets w repozytorium)
 3. Przejdź do aktywnego sprintu
 4. Kliknij przycisk **"Zamknij sprint"**
 5. Opcjonalnie zaznacz "Utwórz nowy sprint"
@@ -478,7 +478,7 @@ sprint-review/
 │   │   ├── UserMenu.vue       # Menu użytkownika
 │   │   ├── JiraSyncButton.vue # Przycisk synchronizacji z Jira
 │   │   ├── CloseSprintButton.vue # Przycisk zamykania sprintu
-│   │   ├── GistTokenConfig.vue # Konfiguracja tokena Gist
+│   │   ├── GistTokenConfig.vue # Status konfiguracji Gist
 │   │   └── ...                # Pozostałe komponenty
 │   ├── views/                 # Widoki stron
 │   ├── services/              # Serwisy (API)
@@ -527,14 +527,24 @@ Gist/
 4. Skopiuj ID Gista z URL (ciąg znaków po nazwie użytkownika)
 5. Utwórz Personal Access Token z uprawnieniem `gist`
 
-### Konfiguracja Gist w aplikacji
+### Konfiguracja Gist
 
-Po zalogowaniu do aplikacji:
-1. Kliknij przycisk **"Gist"** w nagłówku strony
-2. Wprowadź ID Gista i token
-3. Kliknij **"Zapisz"** - token zostanie zwalidowany
+Konfiguracja Gist odbywa się **wyłącznie przez repository secrets** - nie ma możliwości konfiguracji z poziomu UI aplikacji.
 
-Token jest przechowywany w localStorage przeglądarki.
+1. Dodaj secrets w repozytorium (**Settings** → **Secrets and variables** → **Actions**):
+   - `GIST_ID` - ID Twojego Gista
+   - `GIST_TOKEN` - Personal Access Token z uprawnieniem `gist`
+
+2. Workflow `deploy.yml` automatycznie przekazuje te wartości jako zmienne środowiskowe podczas budowania:
+   ```yaml
+   env:
+     VITE_GIST_ID: ${{ secrets.GIST_ID }}
+     VITE_GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+   ```
+
+3. Po wdrożeniu aplikacji, dane będą automatycznie pobierane z Gist (tylko dla zalogowanych użytkowników).
+
+**Uwaga:** Tokeny i ID Gista NIE są przechowywane w kodzie źródłowym ani w localStorage - są wbudowane w aplikację podczas procesu budowania.
 
 ---
 
@@ -582,10 +592,10 @@ Token jest przechowywany w localStorage przeglądarki.
 
 ### Problemy z Gist:
 
-1. **"Gist nie jest skonfigurowany"** - Kliknij przycisk "Gist" w nagłówku i wprowadź ID Gista oraz token
-2. **"Nieprawidłowy token lub ID Gista"** - Sprawdź czy ID Gista i token są poprawne
-3. **Komentarze nie zapisują się** - Upewnij się, że token ma uprawnienie `gist`
-4. **Dane nie ładują się z Gist** - Sprawdź czy pliki w Gist mają poprawny format JSON
+1. **"Gist nie jest skonfigurowany"** - Dodaj secrets `GIST_ID` i `GIST_TOKEN` w repozytorium i przebuduj aplikację
+2. **Komentarze nie zapisują się** - Upewnij się, że token ma uprawnienie `gist`
+3. **Dane nie ładują się z Gist** - Sprawdź czy pliki w Gist mają poprawny format JSON
+4. **Dane widoczne tylko po zalogowaniu** - To prawidłowe zachowanie - dane z Gist są dostępne tylko dla zalogowanych użytkowników
 
 ### Problemy z synchronizacją Jira:
 
