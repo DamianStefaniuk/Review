@@ -1,6 +1,13 @@
 /**
- * Service for loading sprint data from JSON files
+ * Service for loading sprint data from JSON files or Gist
  */
+
+import {
+  isGistConfigured,
+  loadSprintFromGist,
+  loadCurrentSprintInfoFromGist,
+  loadSprintListFromGist
+} from './gistService'
 
 const BASE_PATH = './data'
 
@@ -16,9 +23,19 @@ export async function loadConfig() {
 }
 
 /**
- * Load current sprint info
+ * Load current sprint info (from Gist or local file)
  */
 export async function loadCurrentSprintInfo() {
+  // Try Gist first if configured
+  if (isGistConfigured()) {
+    try {
+      return await loadCurrentSprintInfoFromGist()
+    } catch (error) {
+      console.warn('Failed to load from Gist, falling back to local:', error)
+    }
+  }
+
+  // Fallback to local file
   const response = await fetch(`${BASE_PATH}/current-sprint.json`)
   if (!response.ok) {
     throw new Error('Failed to load current sprint info')
@@ -27,9 +44,19 @@ export async function loadCurrentSprintInfo() {
 }
 
 /**
- * Load sprint data by ID
+ * Load sprint data by ID (from Gist or local file)
  */
 export async function loadSprint(sprintId) {
+  // Try Gist first if configured
+  if (isGistConfigured()) {
+    try {
+      return await loadSprintFromGist(sprintId)
+    } catch (error) {
+      console.warn('Failed to load sprint from Gist, falling back to local:', error)
+    }
+  }
+
+  // Fallback to local file
   const response = await fetch(`${BASE_PATH}/sprints/sprint-${sprintId}.json`)
   if (!response.ok) {
     throw new Error(`Failed to load sprint ${sprintId}`)
@@ -38,11 +65,19 @@ export async function loadSprint(sprintId) {
 }
 
 /**
- * Load all available sprints (list)
+ * Load all available sprints (list) - from Gist or local files
  */
 export async function loadSprintList() {
-  // In a real scenario, this would come from an index file or API
-  // For now, we'll try to load sprints from 41 to 50
+  // Try Gist first if configured
+  if (isGistConfigured()) {
+    try {
+      return await loadSprintListFromGist()
+    } catch (error) {
+      console.warn('Failed to load sprint list from Gist, falling back to local:', error)
+    }
+  }
+
+  // Fallback to local files
   const sprints = []
 
   for (let id = 50; id >= 40; id--) {

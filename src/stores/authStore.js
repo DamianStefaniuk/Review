@@ -8,9 +8,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
 
-  // Load from sessionStorage on startup
+  // Load from localStorage on startup
   function loadFromStorage() {
-    const stored = sessionStorage.getItem('auth')
+    const stored = localStorage.getItem('auth')
     if (stored) {
       const data = JSON.parse(stored)
       user.value = data.user
@@ -18,10 +18,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Save to sessionStorage
+  // Save to localStorage
   function saveToStorage() {
     if (user.value && token.value) {
-      sessionStorage.setItem('auth', JSON.stringify({
+      localStorage.setItem('auth', JSON.stringify({
         user: user.value,
         token: token.value
       }))
@@ -39,7 +39,7 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     user.value = null
     token.value = null
-    sessionStorage.removeItem('auth')
+    localStorage.removeItem('auth')
   }
 
   return {

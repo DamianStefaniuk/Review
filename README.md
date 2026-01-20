@@ -10,12 +10,11 @@ Aplikacja webowa do prezentacji i archiwizacji review sprintów zespołu. Integr
   - [Krok 2: Utworzenie tokena Jira API](#krok-2-utworzenie-tokena-jira-api)
   - [Krok 3: Znalezienie ID tablicy i klucza projektu Jira](#krok-3-znalezienie-id-tablicy-i-klucza-projektu-jira)
   - [Krok 4: Konfiguracja Secrets w GitHub](#krok-4-konfiguracja-secrets-w-github)
-  - [Krok 5: Utworzenie GitHub OAuth App](#krok-5-utworzenie-github-oauth-app)
-  - [Krok 6: Konfiguracja aplikacji](#krok-6-konfiguracja-aplikacji)
-  - [Krok 7: Push kodu do GitHub](#krok-7-push-kodu-do-github)
-  - [Krok 8: Włączenie GitHub Pages](#krok-8-włączenie-github-pages)
-  - [Krok 9: Dostęp do aplikacji](#krok-9-dostęp-do-aplikacji)
-- [Autoryzacja GitHub OAuth](#autoryzacja-github-oauth)
+  - [Krok 5: Konfiguracja aplikacji](#krok-5-konfiguracja-aplikacji)
+  - [Krok 6: Push kodu do GitHub](#krok-6-push-kodu-do-github)
+  - [Krok 7: Włączenie GitHub Pages](#krok-7-włączenie-github-pages)
+  - [Krok 8: Dostęp do aplikacji](#krok-8-dostęp-do-aplikacji)
+- [Autoryzacja GitHub (Personal Access Token)](#autoryzacja-github-personal-access-token)
 - [Uruchomienie lokalne](#uruchomienie-lokalne)
 - [Format opisu sprintu w Jira](#format-opisu-sprintu-w-jira)
 - [Używanie aplikacji](#używanie-aplikacji)
@@ -33,9 +32,10 @@ Aplikacja webowa do prezentacji i archiwizacji review sprintów zespołu. Integr
 - **Filtrowanie po klientach** - grupowanie i filtrowanie po `[NAZWA_KLIENTA]`
 - **Tryb prezentacji** - pełnoekranowy tryb do przeprowadzania review
 - **Eksport do PDF** - generowanie PDF z aktualnego review
-- **Autoryzacja GitHub OAuth** - logowanie przez GitHub z kontrolą członkostwa w organizacji
-- **Integracja z GitHub** - commitowanie komentarzy z konta zalogowanego użytkownika
-- **Synchronizacja z Jira** - automatyczne pobieranie danych przez GitHub Actions
+- **Autoryzacja GitHub PAT** - logowanie przez Personal Access Token z kontrolą członkostwa w organizacji
+- **Przechowywanie danych w GitHub Gist** - komentarze i dane sprintów przechowywane w Gist (bez commitów do repozytorium)
+- **Synchronizacja z Jira na żądanie** - przycisk wyzwalający GitHub Actions workflow
+- **Zamykanie sprintu** - możliwość zamknięcia sprintu i utworzenia nowego z poziomu UI
 
 ---
 
@@ -144,53 +144,23 @@ Aplikacja webowa do prezentacji i archiwizacji review sprintów zespołu. Integr
 | `JIRA_API_TOKEN` | `twój-token-api` |
 | `JIRA_PROJECT_KEY` | `PROJ` |
 | `JIRA_BOARD_ID` | `123` |
+| `GIST_ID` | ID Gista do przechowywania danych sprintów |
+| `GIST_TOKEN` | Personal Access Token z uprawnieniem `gist` |
 
 **Uwaga:** Secrets są automatycznie maskowane w logach workflow.
 
 ---
 
-### Krok 5: Utworzenie GitHub OAuth App
+### Krok 5: Konfiguracja aplikacji
 
-Aplikacja używa GitHub Device Flow do autoryzacji użytkowników. Aby to działało, musisz utworzyć OAuth App:
-
-1. W GitHub kliknij na swój avatar → **"Settings"**
-
-2. Przewiń do **"Developer settings"** (na samym dole)
-
-3. Kliknij **"OAuth Apps"** → **"New OAuth App"**
-
-4. Wypełnij formularz:
-   - **Application name:** `Sprint Review`
-   - **Homepage URL:** `https://twoja-org.github.io/sprint-review`
-   - **Authorization callback URL:** `https://twoja-org.github.io/sprint-review` (nieużywane w Device Flow, ale wymagane)
-
-5. Kliknij **"Register application"**
-
-6. **WAŻNE:** Skopiuj **Client ID** (zaczyna się od `Ov23li...`)
-   - **Client Secret NIE jest potrzebny** dla Device Flow!
-
-7. W ustawieniach aplikacji zaznacz opcję **"Enable Device Flow"** (może wymagać przewinięcia w dół)
-
-8. Zapisz Client ID - będzie potrzebny w konfiguracji
-
----
-
-### Krok 6: Konfiguracja aplikacji
-
-Zaktualizuj plik `data/config.json` z danymi OAuth i GitHub:
+Zaktualizuj plik `data/config.json` z danymi GitHub:
 
 ```json
 {
-  "jira": {
-    "projectKey": "PROJ",
-    "boardId": 123,
-    "baseUrl": "https://jira.example.com"
-  },
   "github": {
     "owner": "twoja-organizacja",
     "repo": "sprint-review",
     "branch": "main",
-    "oauthClientId": "Ov23liXXXXXXXXXXXXXX",
     "organization": "twoja-organizacja"
   },
   "labels": {
@@ -205,14 +175,13 @@ Zaktualizuj plik `data/config.json` z danymi OAuth i GitHub:
 | `github.owner` | Nazwa użytkownika/organizacji na GitHub |
 | `github.repo` | Nazwa repozytorium |
 | `github.branch` | Branch główny (zazwyczaj `main`) |
-| `github.oauthClientId` | Client ID z OAuth App (Krok 5) |
 | `github.organization` | Nazwa organizacji do weryfikacji członkostwa |
 
 **Uwaga:** Pole `organization` kontroluje kto może się zalogować. Tylko członkowie tej organizacji uzyskają dostęp.
 
 ---
 
-### Krok 7: Push kodu do GitHub
+### Krok 6: Push kodu do GitHub
 
 1. Otwórz terminal w folderze projektu
 
@@ -247,7 +216,7 @@ Zaktualizuj plik `data/config.json` z danymi OAuth i GitHub:
 
 ---
 
-### Krok 8: Włączenie GitHub Pages
+### Krok 7: Włączenie GitHub Pages
 
 1. W repozytorium przejdź do **Settings** → **Pages**
 
@@ -268,7 +237,7 @@ Zaktualizuj plik `data/config.json` z danymi OAuth i GitHub:
 
 ---
 
-### Krok 9: Dostęp do aplikacji
+### Krok 8: Dostęp do aplikacji
 
 Po udanym deploymencie, aplikacja będzie dostępna pod adresem:
 
@@ -288,22 +257,32 @@ https://twoja-nazwa.github.io/sprint-review/
 
 ---
 
-## Autoryzacja GitHub OAuth
+## Autoryzacja GitHub (Personal Access Token)
 
-Aplikacja używa **GitHub Device Flow** do autoryzacji użytkowników. Jest to metoda 100% client-side, nie wymaga backendu.
+Aplikacja używa **Personal Access Token (PAT)** do autoryzacji użytkowników. Jest to metoda 100% client-side, nie wymaga backendu ani OAuth App.
 
 ### Jak działa logowanie
 
 ```
-1. Użytkownik klika "Zaloguj przez GitHub"
-2. Aplikacja wysyła żądanie do GitHub → otrzymuje kod jednorazowy
-3. Użytkownik widzi: "Wejdź na github.com/login/device i wpisz kod: ABCD-1234"
-4. Użytkownik otwiera stronę GitHub i wpisuje kod
-5. Aplikacja odpytuje GitHub (polling) czekając na autoryzację
-6. Po autoryzacji → otrzymuje access token
-7. Aplikacja sprawdza członkostwo w organizacji
-8. Jeśli użytkownik należy do organizacji → dostęp przyznany
+1. Użytkownik wchodzi na stronę aplikacji
+2. Widzi instrukcję jak utworzyć Personal Access Token
+3. Tworzy token na GitHub z uprawnieniem read:org
+4. Wkleja token w aplikacji
+5. Aplikacja weryfikuje token i sprawdza członkostwo w organizacji
+6. Jeśli użytkownik należy do organizacji → dostęp przyznany
+7. Token jest zapisywany w localStorage (zapamiętany na stałe)
 ```
+
+### Jak utworzyć Personal Access Token
+
+1. Otwórz [github.com/settings/tokens/new](https://github.com/settings/tokens/new)
+2. Wypełnij formularz:
+   - **Note:** np. "Sprint Review App"
+   - **Expiration:** wybierz okres ważności (np. 90 dni)
+3. W sekcji **"Select scopes"** zaznacz:
+   - **read:org** (w sekcji "admin:org")
+4. Kliknij **"Generate token"**
+5. **Skopiuj token** - zobaczysz go tylko raz!
 
 ### Kontrola dostępu
 
@@ -321,26 +300,26 @@ Użytkownicy spoza organizacji zobaczą komunikat o braku uprawnień.
 
 ### Sesja użytkownika
 
-- Token jest przechowywany w **sessionStorage** (nie localStorage)
-- Sesja wygasa po zamknięciu karty/przeglądarki
+- Token jest przechowywany w **localStorage** (zapamiętany na stałe)
+- Sesja nie wygasa po zamknięciu przeglądarki
 - Użytkownik może się wylogować klikając przycisk "Wyloguj"
+- Token należy odświeżyć przed jego wygaśnięciem
 
 ### Wymagane uprawnienia (scope)
 
-Aplikacja prosi o minimalne uprawnienia:
-- `read:user` - odczyt profilu użytkownika
+Token wymaga minimalnego uprawnienia:
 - `read:org` - sprawdzenie członkostwa w organizacji
 
 ### Bezpieczeństwo
 
 | Aspekt | Rozwiązanie |
 |--------|-------------|
-| Token storage | sessionStorage (usuwa się po zamknięciu karty) |
-| Client Secret | NIE jest potrzebny w Device Flow |
-| Scope | Minimalny: `read:user read:org` |
-| Organizacja | Sprawdzana po stronie klienta |
+| Token storage | localStorage (przechowywany lokalnie w przeglądarce użytkownika) |
+| Zakres tokena | Minimalny: tylko `read:org` |
+| Organizacja | Sprawdzana przez GitHub API |
+| Prywatność | Token nigdy nie opuszcza przeglądarki użytkownika |
 
-**Uwaga:** Sprawdzanie organizacji odbywa się po stronie klienta (frontend). Jeśli dane są wrażliwe, rozważ użycie prywatnego repozytorium lub dodanie backendu.
+**Uwaga:** Każdy użytkownik tworzy własny token, który jest przechowywany tylko w jego przeglądarce. Token nie jest współdzielony ani przesyłany do żadnego serwera poza GitHub API.
 
 ---
 
@@ -427,12 +406,29 @@ Zadania bez etykiet `cel*` pojawią się w sekcji "Wszystkie zadania".
 ### Dodawanie komentarzy:
 
 1. Zaloguj się przez GitHub (wymagane)
-2. Kliknij na cel w przeglądzie
-3. Przewiń do sekcji "Komentarze"
-4. Wpisz treść komentarza
-5. Kliknij "Dodaj komentarz"
+2. Skonfiguruj Gist (przycisk "Gist" w nagłówku)
+3. Kliknij na cel w przeglądzie
+4. Przewiń do sekcji "Komentarze"
+5. Wpisz treść komentarza
+6. Kliknij "Dodaj komentarz"
 
-Komentarze są automatycznie commitowane do repozytorium GitHub z konta zalogowanego użytkownika. Commit zawiera informację o autorze w formacie Co-Authored-By
+Komentarze są automatycznie zapisywane do GitHub Gist (nie są tworzone commity w repozytorium).
+
+### Synchronizacja z Jira:
+
+1. Zaloguj się przez GitHub (wymagane)
+2. Kliknij przycisk **"Synchronizuj z Jira"** w nagłówku
+3. Poczekaj na zakończenie workflow GitHub Actions
+4. Dane zostaną zaktualizowane automatycznie
+
+### Zamykanie sprintu:
+
+1. Zaloguj się przez GitHub (wymagane)
+2. Skonfiguruj Gist (przycisk "Gist" w nagłówku)
+3. Przejdź do aktywnego sprintu
+4. Kliknij przycisk **"Zamknij sprint"**
+5. Opcjonalnie zaznacz "Utwórz nowy sprint"
+6. Potwierdź zamknięcie
 
 ### Eksport do PDF:
 
@@ -480,17 +476,65 @@ sprint-review/
 │   ├── components/            # Komponenty UI
 │   │   ├── LoginScreen.vue    # Ekran logowania
 │   │   ├── UserMenu.vue       # Menu użytkownika
+│   │   ├── JiraSyncButton.vue # Przycisk synchronizacji z Jira
+│   │   ├── CloseSprintButton.vue # Przycisk zamykania sprintu
+│   │   ├── GistTokenConfig.vue # Konfiguracja tokena Gist
 │   │   └── ...                # Pozostałe komponenty
 │   ├── views/                 # Widoki stron
 │   ├── services/              # Serwisy (API)
-│   │   ├── authService.js     # GitHub Device Flow
-│   │   ├── githubApi.js       # Commitowanie do GitHub
-│   │   └── dataLoader.js      # Ładowanie danych
+│   │   ├── authService.js     # GitHub PAT authentication
+│   │   ├── githubApi.js       # Walidacja tokenów GitHub
+│   │   ├── gistService.js     # Operacje na GitHub Gist
+│   │   ├── sprintManagementService.js # Zarządzanie sprintami
+│   │   ├── githubActionsService.js # Wyzwalanie GitHub Actions
+│   │   └── dataLoader.js      # Ładowanie danych (Gist + fallback)
 │   └── assets/                # Style CSS
 │
 └── public/                    # Pliki statyczne
     └── favicon.svg
 ```
+
+---
+
+## Przechowywanie danych (GitHub Gist)
+
+Aplikacja przechowuje dane sprintów i komentarze w GitHub Gist zamiast commitowania bezpośrednio do repozytorium. Dzięki temu:
+- Komentarze są zapisywane natychmiastowo bez tworzenia commitów
+- Dane są dostępne z dowolnego miejsca
+- Historia zmian jest zarządzana przez Gist
+
+### Struktura plików w Gist
+
+```
+Gist/
+├── current-sprint.json     # Wskaźnik na aktywny sprint
+├── sprint-41.json          # Dane sprintu 41
+├── sprint-42.json          # Dane sprintu 42
+└── ...                     # Kolejne sprinty
+```
+
+### Jak utworzyć Gist
+
+1. Przejdź do [gist.github.com](https://gist.github.com)
+2. Utwórz nowy Gist (publiczny lub prywatny)
+3. Dodaj plik `current-sprint.json` z zawartością:
+   ```json
+   {
+     "currentSprintId": 42,
+     "isActive": true
+   }
+   ```
+4. Skopiuj ID Gista z URL (ciąg znaków po nazwie użytkownika)
+5. Utwórz Personal Access Token z uprawnieniem `gist`
+
+### Konfiguracja Gist w aplikacji
+
+Po zalogowaniu do aplikacji:
+1. Kliknij przycisk **"Gist"** w nagłówku strony
+2. Wprowadź ID Gista i token
+3. Kliknij **"Zapisz"** - token zostanie zwalidowany
+
+Token jest przechowywany w localStorage przeglądarki.
 
 ---
 
@@ -532,9 +576,22 @@ sprint-review/
 ### Problemy z logowaniem GitHub:
 
 1. **"Musisz należeć do organizacji..."** - Twoje konto GitHub nie jest członkiem organizacji określonej w `config.json`
-2. **Kod wygasł** - Spróbuj ponownie, kod jest ważny przez kilka minut
-3. **Device Flow nie działa** - Upewnij się, że w OAuth App jest włączona opcja "Enable Device Flow"
-4. **CORS errors** - GitHub Device Flow wymaga nagłówka `Accept: application/json`
+2. **"Nieprawidłowy token"** - Sprawdź czy token jest poprawnie skopiowany i nie wygasł
+3. **"Nie udało się sprawdzić członkostwa"** - Upewnij się, że token ma uprawnienie `read:org`
+4. **Token wygasł** - Utwórz nowy token na GitHub i zaloguj się ponownie
+
+### Problemy z Gist:
+
+1. **"Gist nie jest skonfigurowany"** - Kliknij przycisk "Gist" w nagłówku i wprowadź ID Gista oraz token
+2. **"Nieprawidłowy token lub ID Gista"** - Sprawdź czy ID Gista i token są poprawne
+3. **Komentarze nie zapisują się** - Upewnij się, że token ma uprawnienie `gist`
+4. **Dane nie ładują się z Gist** - Sprawdź czy pliki w Gist mają poprawny format JSON
+
+### Problemy z synchronizacją Jira:
+
+1. **Workflow nie uruchamia się** - Sprawdź czy masz uprawnienia do uruchamiania workflow w repozytorium
+2. **Błąd synchronizacji** - Sprawdź logi w zakładce Actions na GitHub
+3. **Dane nie aktualizują się** - Upewnij się, że secrets `GIST_ID` i `GIST_TOKEN` są ustawione w repozytorium
 
 ---
 
@@ -546,7 +603,7 @@ sprint-review/
 | State Management | Pinia |
 | Styling | Tailwind CSS |
 | Routing | Vue Router 4 |
-| Auth | GitHub OAuth (Device Flow) |
+| Auth | GitHub Personal Access Token |
 | Markdown | marked |
 | PDF | html2pdf.js |
 | Sync | Python + requests |

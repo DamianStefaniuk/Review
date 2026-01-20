@@ -2,6 +2,8 @@
 import { ref, watch, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadSprint, loadCurrentSprintInfo, getClients } from '../services/dataLoader'
+import { addCommentToGist, isGistConfigured } from '../services/gistService'
+import { useAuthStore } from '../stores/authStore'
 import SprintOverview from '../components/SprintOverview.vue'
 import GoalDetail from '../components/GoalDetail.vue'
 import AchievementsList from '../components/AchievementsList.vue'
@@ -10,7 +12,11 @@ import NextSprintPlans from '../components/NextSprintPlans.vue'
 import ClientFilter from '../components/ClientFilter.vue'
 import ClientStats from '../components/ClientStats.vue'
 import PdfExport from '../components/PdfExport.vue'
-import { commitComment } from '../services/githubApi'
+import JiraSyncButton from '../components/JiraSyncButton.vue'
+import CloseSprintButton from '../components/CloseSprintButton.vue'
+import GistTokenConfig from '../components/GistTokenConfig.vue'
+
+const authStore = useAuthStore()
 
 const route = useRoute()
 const sprint = ref(null)
@@ -66,13 +72,20 @@ const handleAddComment = async ({ goalId, comment }) => {
   // Add comment locally
   goal.comments.push(newComment)
 
-  // Try to commit to GitHub
-  try {
-    await commitComment(sprint.value.id, goalId, newComment)
-  } catch (err) {
-    console.error('Failed to commit comment:', err)
-    // Comment is still added locally, will be synced later
+  // Try to save to Gist if configured
+  if (isGistConfigured()) {
+    try {
+      await addCommentToGist(sprint.value.id, goalId, newComment)
+    } catch (err) {
+      console.error('Failed to save comment to Gist:', err)
+      // Comment is still added locally
+    }
   }
+}
+
+const handleSyncComplete = () => {
+  // Reload sprint data after sync
+  loadSprintData(route.params.sprintId)
 }
 
 // Watch for route changes
@@ -141,6 +154,23 @@ onMounted(() => {
         </div>
 
         <div class="flex items-center gap-3">
+          <!-- Gist config (only for authenticated users) -->
+          <GistTokenConfig v-if="authStore.isAuthenticated" />
+
+          <!-- Jira sync button (only for authenticated users) -->
+          <JiraSyncButton
+            v-if="authStore.isAuthenticated"
+            @sync-complete="handleSyncComplete"
+          />
+
+          <!-- Close sprint button (only for authenticated users and active sprints) -->
+          <CloseSprintButton
+            v-if="authStore.isAuthenticated && sprint.status === 'active'"
+            :sprint-id="sprint.id"
+            :sprint-name="sprint.name"
+            :sprint-status="sprint.status"
+          />
+
           <ClientFilter
             :clients="clients"
             v-model="selectedClient"
