@@ -236,7 +236,7 @@ def calculate_goal_progress(goal_tasks: List[Dict]) -> int:
     if not goal_tasks:
         return 0
 
-    done_count = sum(1 for t in goal_tasks if t.get('status', '').lower() in ['done', 'closed', 'resolved'])
+    done_count = sum(1 for t in goal_tasks if t.get('status') == 'Done')
     return round((done_count / len(goal_tasks)) * 100)
 
 

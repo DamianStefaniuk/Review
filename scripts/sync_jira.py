@@ -34,6 +34,7 @@ from utils.jira_parser import (
     map_task_to_goal,
     calculate_goal_progress
 )
+from utils.status_mapper import map_jira_status
 
 # Configure logging
 logging.basicConfig(
@@ -160,7 +161,7 @@ def transform_issue(issue: Dict, epic_cache: Dict[str, str], jira_client: JiraCl
     return {
         'key': issue['key'],
         'summary': fields.get('summary', ''),
-        'status': fields.get('status', {}).get('name', 'To Do'),
+        'status': map_jira_status(fields.get('status', {})),
         'labels': fields.get('labels', []),
         'epic': epic_name,
         'assignee': assignee
