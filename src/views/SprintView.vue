@@ -1,7 +1,7 @@
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { loadSprint, loadCurrentSprintInfo, getClients } from '../services/dataLoader'
+import { loadSprint, loadCurrentSprintInfo } from '../services/dataLoader'
 import { addCommentToGist, isGistConfigured } from '../services/gistService'
 import { useAuthStore } from '../stores/authStore'
 import SprintOverview from '../components/SprintOverview.vue'
@@ -9,7 +9,6 @@ import GoalDetail from '../components/GoalDetail.vue'
 import AchievementsList from '../components/AchievementsList.vue'
 import AllTasks from '../components/AllTasks.vue'
 import NextSprintPlans from '../components/NextSprintPlans.vue'
-import ClientFilter from '../components/ClientFilter.vue'
 import ClientStats from '../components/ClientStats.vue'
 import PdfExport from '../components/PdfExport.vue'
 import JiraSyncButton from '../components/JiraSyncButton.vue'
@@ -23,10 +22,7 @@ const sprint = ref(null)
 const loading = ref(true)
 const error = ref(null)
 const selectedGoal = ref(null)
-const selectedClient = ref(null)
 const activeTab = ref('overview')
-
-const clients = computed(() => sprint.value ? getClients(sprint.value) : [])
 
 const loadSprintData = async (sprintId) => {
   loading.value = true
@@ -220,10 +216,6 @@ onMounted(() => {
             :sprint-status="sprint.status"
           />
 
-          <ClientFilter
-            :clients="clients"
-            v-model="selectedClient"
-          />
           <PdfExport :sprint="sprint" />
         </div>
       </header>
@@ -269,13 +261,11 @@ onMounted(() => {
           <div class="lg:col-span-2 space-y-6">
             <SprintOverview
               :sprint="sprint"
-              :selected-client="selectedClient"
               @select-goal="handleSelectGoal"
             />
 
             <AchievementsList
               :achievements="sprint.achievements"
-              :selected-client="selectedClient"
             />
           </div>
 

@@ -11,7 +11,7 @@ const showDetails = ref(false)
     <!-- Status badge / button -->
     <button
       @click="showDetails = !showDetails"
-      class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+      class="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors min-w-[160px]"
       :class="isConfigured
         ? 'text-green-700 bg-green-100 hover:bg-green-200'
         : 'text-amber-700 bg-amber-100 hover:bg-amber-200'"

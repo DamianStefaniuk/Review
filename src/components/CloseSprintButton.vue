@@ -77,7 +77,7 @@ const handleCloseSprint = async () => {
     <button
       v-if="sprintStatus === 'active'"
       @click="openModal"
-      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 rounded-lg hover:bg-orange-200 transition-colors"
+      class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 rounded-lg hover:bg-orange-200 transition-colors min-w-[160px]"
     >
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
