@@ -84,6 +84,22 @@ const formatDate = (dateStr) => {
 
     <!-- Sprint list -->
     <nav class="flex-1 overflow-y-auto py-4" v-if="!loading">
+      <!-- No sprints message -->
+      <div v-if="sprints.length === 0" class="px-4 py-8 text-center">
+        <div v-if="!collapsed">
+          <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <p class="text-sm text-gray-500 mb-2">Brak sprintów</p>
+          <p class="text-xs text-gray-400">Skonfiguruj Gist i zsynchronizuj dane z Jira</p>
+        </div>
+        <div v-else class="text-gray-400">
+          <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+          </svg>
+        </div>
+      </div>
+
       <!-- Active sprints -->
       <div v-if="activeSprints.length > 0" class="mb-4">
         <h2

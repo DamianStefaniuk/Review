@@ -127,20 +127,62 @@ onMounted(() => {
     </div>
 
     <!-- Error state -->
-    <div v-else-if="error" class="flex items-center justify-center min-h-screen">
-      <div class="text-center">
-        <div class="w-16 h-16 mx-auto mb-4 text-red-500">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
+    <div v-else-if="error" class="flex items-center justify-center min-h-screen p-6">
+      <div class="bg-white rounded-xl shadow-lg max-w-lg w-full p-8">
+        <div class="text-center mb-6">
+          <div class="w-16 h-16 mx-auto mb-4 text-amber-500">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 class="text-xl font-semibold text-gray-900 mb-2">Brak danych sprintu</h2>
+          <p class="text-gray-600">{{ error }}</p>
         </div>
-        <p class="text-gray-900 font-medium">{{ error }}</p>
-        <button
-          @click="loadSprintData(route.params.sprintId)"
-          class="mt-4 px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700"
-        >
-          Spróbuj ponownie
-        </button>
+
+        <!-- Info box -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-800">
+          <p class="font-medium mb-1">Co możesz zrobić:</p>
+          <ol class="list-decimal list-inside space-y-1 text-blue-700">
+            <li>Skonfiguruj połączenie z Gist (jeśli jeszcze nie skonfigurowane)</li>
+            <li>Uruchom synchronizację z Jira, aby pobrać dane</li>
+            <li>Poczekaj na zakończenie synchronizacji i odśwież stronę</li>
+          </ol>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="space-y-3">
+          <!-- Gist config -->
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <p class="font-medium text-gray-900">1. Konfiguracja Gist</p>
+              <p class="text-sm text-gray-500">Połącz aplikację z GitHub Gist</p>
+            </div>
+            <GistTokenConfig v-if="authStore.isAuthenticated" />
+          </div>
+
+          <!-- Jira sync -->
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <p class="font-medium text-gray-900">2. Synchronizacja Jira</p>
+              <p class="text-sm text-gray-500">Pobierz dane z Jira do Gist</p>
+            </div>
+            <JiraSyncButton
+              v-if="authStore.isAuthenticated"
+              @sync-complete="handleSyncComplete"
+            />
+          </div>
+
+          <!-- Retry button -->
+          <button
+            @click="loadSprintData(route.params.sprintId)"
+            class="w-full mt-4 px-4 py-3 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Odśwież dane
+          </button>
+        </div>
       </div>
     </div>
 
