@@ -85,10 +85,11 @@ function goBack() {
             <div class="flex gap-3">
               <span class="bg-gray-900 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
               <div>
-                <p class="font-medium">Zaznacz uprawnienie</p>
+                <p class="font-medium">Zaznacz uprawnienia</p>
                 <p class="text-sm text-gray-600">W sekcji "Select scopes" zaznacz:</p>
                 <ul class="text-sm text-gray-600 mt-1 space-y-1 ml-4 list-disc">
-                  <li><strong>read:org</strong> (w sekcji "admin:org")</li>
+                  <li><strong>read:org</strong> (w sekcji "admin:org") - do weryfikacji członkostwa</li>
+                  <li><strong>workflow</strong> - do uruchamiania synchronizacji Jira</li>
                 </ul>
               </div>
             </div>

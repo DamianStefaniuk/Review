@@ -266,7 +266,7 @@ Aplikacja używa **Personal Access Token (PAT)** do autoryzacji użytkowników. 
 ```
 1. Użytkownik wchodzi na stronę aplikacji
 2. Widzi instrukcję jak utworzyć Personal Access Token
-3. Tworzy token na GitHub z uprawnieniem read:org
+3. Tworzy token na GitHub z uprawnieniami read:org i workflow
 4. Wkleja token w aplikacji
 5. Aplikacja weryfikuje token i sprawdza członkostwo w organizacji
 6. Jeśli użytkownik należy do organizacji → dostęp przyznany
@@ -280,7 +280,8 @@ Aplikacja używa **Personal Access Token (PAT)** do autoryzacji użytkowników. 
    - **Note:** np. "Sprint Review App"
    - **Expiration:** wybierz okres ważności (np. 90 dni)
 3. W sekcji **"Select scopes"** zaznacz:
-   - **read:org** (w sekcji "admin:org")
+   - **read:org** (w sekcji "admin:org") - wymagane do weryfikacji członkostwa
+   - **workflow** (w sekcji "workflow") - wymagane do uruchamiania synchronizacji Jira
 4. Kliknij **"Generate token"**
 5. **Skopiuj token** - zobaczysz go tylko raz!
 
@@ -307,15 +308,21 @@ Użytkownicy spoza organizacji zobaczą komunikat o braku uprawnień.
 
 ### Wymagane uprawnienia (scope)
 
-Token wymaga minimalnego uprawnienia:
-- `read:org` - sprawdzenie członkostwa w organizacji
+Token wymaga następujących uprawnień:
+
+| Scope | Cel | Wymagane? |
+|-------|-----|-----------|
+| `read:org` | Sprawdzenie członkostwa w organizacji | Tak (do logowania) |
+| `workflow` | Uruchamianie synchronizacji Jira z aplikacji | Tak (do synchronizacji) |
+
+**Uwaga:** Bez uprawnienia `workflow` logowanie będzie działać, ale przycisk "Synchronizuj z Jira" zwróci błąd 403.
 
 ### Bezpieczeństwo
 
 | Aspekt | Rozwiązanie |
 |--------|-------------|
 | Token storage | localStorage (przechowywany lokalnie w przeglądarce użytkownika) |
-| Zakres tokena | Minimalny: tylko `read:org` |
+| Zakres tokena | `read:org` + `workflow` (minimalne wymagane uprawnienia) |
 | Organizacja | Sprawdzana przez GitHub API |
 | Prywatność | Token nigdy nie opuszcza przeglądarki użytkownika |
 
