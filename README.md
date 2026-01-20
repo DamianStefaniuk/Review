@@ -365,7 +365,9 @@ Wynik buildu znajdziesz w folderze `dist/`.
 
 ## Format opisu sprintu w Jira
 
-Aby aplikacja poprawnie rozpoznawała cele i osiągnięcia, opis sprintu w Jira powinien być w następującym formacie:
+Parser obsługuje **dwa formaty** opisu sprintu:
+
+### Format 1: Z nagłówkami sekcji
 
 ```
 ## Cele główne
@@ -378,6 +380,22 @@ Aby aplikacja poprawnie rozpoznawała cele i osiągnięcia, opis sprintu w Jira 
 - [Klient C] Hotfix logowania
 - Aktualizacja dokumentacji
 ```
+
+### Format 2: Automatyczne rozpoznawanie (bez nagłówków)
+
+```
+1. [KLIENT_NAZWA] Cel głowny 1
+2. [KLIENT_NAZWA] Cel główny 2
+3. Cel główny 3 (bez klienta/globalny)
+
+- [KLIENT_NAZWA] Osiągnięcie dodatkowe
+- [KLIENT_NAZWA] Osiągniecie dodatkowe
+- Osiągniecie dodatkowe
+```
+
+W tym formacie:
+- **Elementy numerowane** (1. 2. 3.) → rozpoznawane jako **cele**
+- **Elementy z myślnikiem** (- ) → rozpoznawane jako **osiągnięcia**
 
 **Uwaga:** Plany na następny sprint są edytowalne bezpośrednio z aplikacji webowej (zakładka "Następny sprint") i NIE są pobierane z opisu sprintu w Jira.
 

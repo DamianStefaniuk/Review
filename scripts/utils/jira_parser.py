@@ -2,8 +2,10 @@
 Jira Sprint Description Parser
 
 Parses sprint goals and achievements from Jira sprint description.
-Expected format in sprint description:
 
+Supported formats:
+
+Format 1 (with headers):
 ## Cele główne
 1. [KLIENT] Opis celu
 2. [KLIENT] Inny cel
@@ -11,6 +13,13 @@ Expected format in sprint description:
 ## Osiągnięcia dodatkowe
 - [KLIENT] Opis osiągnięcia
 - Opis bez klienta
+
+Format 2 (auto-detect by list markers):
+1. [KLIENT] Cel 1          <- numbered items = goals
+2. [KLIENT] Cel 2
+
+- [KLIENT] Osiągnięcie 1   <- dash items = achievements
+- [KLIENT] Osiągnięcie 2
 """
 
 import re
@@ -30,9 +39,28 @@ def parse_client_from_text(text: str) -> Tuple[Optional[str], str]:
     return None, text.strip()
 
 
+def _is_numbered_item(line: str) -> bool:
+    """Check if line starts with a number (e.g., '1.', '2)', '3 ')."""
+    return bool(re.match(r'^\d+[.)\s]', line))
+
+
+def _is_dash_item(line: str) -> bool:
+    """Check if line starts with a dash or asterisk."""
+    return bool(re.match(r'^[-*]\s', line))
+
+
+def _is_section_header(line: str) -> bool:
+    """Check if line is a section header (## or **)."""
+    return line.startswith('##') or line.startswith('**')
+
+
 def parse_sprint_description(description: str) -> Dict:
     """
     Parse sprint description to extract goals and achievements.
+
+    Supports two modes:
+    1. Explicit headers: "## Cele główne" and "## Osiągnięcia"
+    2. Auto-detect: numbered items (1. 2. 3.) = goals, dash items (-) = achievements
 
     Args:
         description: Sprint description text from Jira
@@ -49,6 +77,15 @@ def parse_sprint_description(description: str) -> Dict:
         return result
 
     lines = description.strip().split('\n')
+
+    # First pass: check if explicit headers exist
+    has_explicit_headers = False
+    for line in lines:
+        lower_line = line.lower().strip()
+        if any(keyword in lower_line for keyword in ['cele główne', 'cele sprintu', 'sprint goals', 'osiągnięcia', 'achievements']):
+            has_explicit_headers = True
+            break
+
     current_section = None
     goal_counter = 0
     achievement_counter = 0
@@ -68,37 +105,58 @@ def parse_sprint_description(description: str) -> Dict:
         elif 'osiągnięcia' in lower_line or 'achievements' in lower_line or 'dodatk' in lower_line:
             current_section = 'achievements'
             continue
-        elif line.startswith('##') or line.startswith('**'):
-            # Other section, reset
+        elif _is_section_header(line):
+            # Other section header, reset
             current_section = None
             continue
 
-        # Parse content based on section
-        if current_section == 'goals':
-            # Remove list markers (1. or - or *)
-            cleaned = re.sub(r'^[\d]+[.)\s]+|^[-*]\s+', '', line)
-            if cleaned:
-                goal_counter += 1
-                client, title = parse_client_from_text(cleaned)
-                result['goals'].append({
-                    'id': goal_counter,
-                    'title': title,
-                    'client': client,
-                    'tag': f'cel{goal_counter}'
-                })
+        # Determine item type
+        is_numbered = _is_numbered_item(line)
+        is_dash = _is_dash_item(line)
 
-        elif current_section == 'achievements':
-            # Remove list markers
-            cleaned = re.sub(r'^[\d]+[.)\s]+|^[-*]\s+', '', line)
-            if cleaned:
-                achievement_counter += 1
-                client, title = parse_client_from_text(cleaned)
-                result['achievements'].append({
-                    'id': achievement_counter,
-                    'title': title,
-                    'client': client,
-                    'completed': False
-                })
+        # Skip lines that are not list items
+        if not is_numbered and not is_dash:
+            continue
+
+        # Determine target section
+        if has_explicit_headers:
+            # Use explicit section from headers
+            target_section = current_section
+        else:
+            # Auto-detect: numbered = goals, dash = achievements
+            if is_numbered:
+                target_section = 'goals'
+            elif is_dash:
+                target_section = 'achievements'
+            else:
+                target_section = None
+
+        if target_section is None:
+            continue
+
+        # Remove list markers
+        cleaned = re.sub(r'^[\d]+[.)\s]+|^[-*]\s+', '', line)
+        if not cleaned:
+            continue
+
+        client, title = parse_client_from_text(cleaned)
+
+        if target_section == 'goals':
+            goal_counter += 1
+            result['goals'].append({
+                'id': goal_counter,
+                'title': title,
+                'client': client,
+                'tag': f'cel{goal_counter}'
+            })
+        elif target_section == 'achievements':
+            achievement_counter += 1
+            result['achievements'].append({
+                'id': achievement_counter,
+                'title': title,
+                'client': client,
+                'completed': False
+            })
 
     return result
 
@@ -183,8 +241,9 @@ def calculate_goal_progress(goal_tasks: List[Dict]) -> int:
 
 
 if __name__ == '__main__':
-    # Test parsing
-    test_description = """
+    # Test 1: Format with headers
+    print("=== Test 1: Format with headers ===")
+    test_description_1 = """
 ## Cele główne
 1. [Klient A] Implementacja nowego modułu
 2. [Klient B] Naprawa błędów krytycznych
@@ -193,13 +252,28 @@ if __name__ == '__main__':
 ## Osiągnięcia dodatkowe
 - [Klient A] Aktualizacja dokumentacji
 - Przegląd kodu
-
-## Plany na następny sprint
-- Integracja z API
-- Testy E2E
 """
 
-    result = parse_sprint_description(test_description)
-    print("Goals:", result['goals'])
-    print("Achievements:", result['achievements'])
-    print("Next sprint plans:", extract_next_sprint_plans(test_description))
+    result_1 = parse_sprint_description(test_description_1)
+    print("Goals:", result_1['goals'])
+    print("Achievements:", result_1['achievements'])
+
+    # Test 2: Auto-detect format (no headers)
+    print("\n=== Test 2: Auto-detect format (no headers) ===")
+    test_description_2 = """
+1. [FRAPOL] Zarządca nagrzewnica/agregat/chłodnica
+
+2. [FRAPOL] Panel T5
+
+3. [KLIMOR] Regulacja wydatku rekuperatora
+
+- [VENTS] Zmiana logo na Blauberga
+
+- [ALNOR] Zatwierdzenie panelu T5
+
+- [KLIMOR] Ochrona przeciwzamrożeniowa przez pomiar ciśnienia
+"""
+
+    result_2 = parse_sprint_description(test_description_2)
+    print("Goals:", result_2['goals'])
+    print("Achievements:", result_2['achievements'])
