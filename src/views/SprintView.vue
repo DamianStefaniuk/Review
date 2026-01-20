@@ -88,6 +88,13 @@ const handleSyncComplete = () => {
   loadSprintData(route.params.sprintId)
 }
 
+const handleNextSprintPlansUpdate = (newContent) => {
+  // Update local sprint data
+  if (sprint.value) {
+    sprint.value.nextSprintPlans = newContent
+  }
+}
+
 // Watch for route changes
 watch(
   () => route.params.sprintId,
@@ -309,6 +316,8 @@ onMounted(() => {
             <NextSprintPlans
               :content="sprint.nextSprintPlans"
               :jira-timeline-url="sprint.jiraTimelineUrl"
+              :sprint-id="sprint.id"
+              @update="handleNextSprintPlansUpdate"
             />
           </div>
         </template>

@@ -34,7 +34,6 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.jira_parser import (
     parse_sprint_description,
-    extract_next_sprint_plans,
     map_task_to_goal,
     calculate_goal_progress
 )
@@ -257,7 +256,6 @@ def build_sprint_data(
     """Build sprint data structure from Jira data."""
     description = sprint.get('goal', '') or ''
     parsed = parse_sprint_description(description)
-    next_plans = extract_next_sprint_plans(description)
 
     goals = []
     for goal_data in parsed['goals']:
@@ -315,6 +313,9 @@ def build_sprint_data(
     board_id = os.getenv('JIRA_BOARD_ID', '')
     timeline_url = f"{jira_url}/jira/software/projects/{os.getenv('JIRA_PROJECT_KEY')}/boards/{board_id}/timeline"
 
+    # Preserve existing nextSprintPlans (editable from web UI)
+    existing_next_plans = existing_data.get('nextSprintPlans', '') if existing_data else ''
+
     return {
         'id': sprint['id'],
         'name': sprint.get('name', f"Sprint {sprint['id']}"),
@@ -324,7 +325,7 @@ def build_sprint_data(
         'goals': goals,
         'achievements': achievements,
         'tasks': tasks,
-        'nextSprintPlans': next_plans,
+        'nextSprintPlans': existing_next_plans,
         'jiraTimelineUrl': timeline_url,
         'closedAt': existing_data.get('closedAt') if existing_data else None
     }

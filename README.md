@@ -377,11 +377,9 @@ Aby aplikacja poprawnie rozpoznawała cele i osiągnięcia, opis sprintu w Jira 
 - [Klient A] Zmiana logo
 - [Klient C] Hotfix logowania
 - Aktualizacja dokumentacji
-
-## Plany na następny sprint
-- Integracja z API płatności
-- Testy E2E
 ```
+
+**Uwaga:** Plany na następny sprint są edytowalne bezpośrednio z aplikacji webowej (zakładka "Następny sprint") i NIE są pobierane z opisu sprintu w Jira.
 
 ### Etykiety zadań w Jira:
 
