@@ -142,12 +142,24 @@ const toggleTokenVisibility = () => {
               <h4 class="font-medium text-blue-800 mb-2">Jak utworzyć Gist i token:</h4>
               <ol class="list-decimal list-inside space-y-1 text-blue-700">
                 <li>Przejdź do <a href="https://gist.github.com" target="_blank" class="underline">gist.github.com</a></li>
-                <li>Utwórz nowy Gist (może być prywatny lub publiczny)</li>
-                <li>Dodaj plik <code class="bg-blue-100 px-1 rounded">current-sprint.json</code> z przykładową zawartością</li>
+                <li>Utwórz nowy Gist prywatny</li>
+                <li>Dodaj plik <code class="bg-blue-100 px-1 rounded">current-sprint.json</code> z przykładową zawartością (patrz poniżej)</li>
                 <li>Skopiuj ID Gista z URL (ciąg znaków po nazwie użytkownika)</li>
                 <li>Utwórz Personal Access Token na <a href="https://github.com/settings/tokens/new" target="_blank" class="underline">GitHub Settings</a></li>
                 <li>Zaznacz tylko uprawnienie <code class="bg-blue-100 px-1 rounded">gist</code></li>
               </ol>
+            </div>
+
+            <!-- Example file content -->
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h4 class="font-medium text-gray-800 mb-2 text-sm">Przykładowa zawartość pliku <code class="bg-gray-200 px-1 rounded">current-sprint.json</code>:</h4>
+              <pre class="bg-gray-900 text-gray-100 p-3 rounded-lg text-xs overflow-x-auto"><code>{
+  "currentSprintId": 42,
+  "isActive": true
+}</code></pre>
+              <p class="mt-2 text-xs text-gray-500">
+                Zmień <code class="bg-gray-200 px-1 rounded">42</code> na numer aktualnego sprintu w Twoim projekcie.
+              </p>
             </div>
 
             <!-- Gist ID input -->

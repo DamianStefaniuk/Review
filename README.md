@@ -516,7 +516,7 @@ Gist/
 ### Jak utworzyć Gist
 
 1. Przejdź do [gist.github.com](https://gist.github.com)
-2. Utwórz nowy Gist (publiczny lub prywatny)
+2. Utwórz nowy Gist prywatny
 3. Dodaj plik `current-sprint.json` z zawartością:
    ```json
    {
