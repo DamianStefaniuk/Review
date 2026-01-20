@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { pluralize, POLISH_NOUNS } from '../utils/pluralize'
 
 const props = defineProps({
   achievements: {
@@ -28,7 +29,7 @@ const completedCount = computed(() =>
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-semibold text-gray-900">Osiągnięcia dodatkowe</h3>
         <span class="text-sm text-gray-500">
-          {{ completedCount }}/{{ filteredAchievements.length }} ukończonych
+          {{ completedCount }}/{{ filteredAchievements.length }} {{ pluralize(completedCount, POLISH_NOUNS.completed) }}
         </span>
       </div>
     </div>

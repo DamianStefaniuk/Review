@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { getClientStats } from '../services/dataLoader'
 import ProgressBar from './ProgressBar.vue'
+import { pluralize, pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
 
 const props = defineProps({
   sprint: {
@@ -45,15 +46,15 @@ const totalStats = computed(() => {
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div class="text-3xl font-bold text-gray-900">{{ totalStats.goals }}</div>
-        <div class="text-sm text-gray-500 mt-1">Celów</div>
+        <div class="text-sm text-gray-500 mt-1">{{ pluralize(totalStats.goals, POLISH_NOUNS.goal) }}</div>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div class="text-3xl font-bold text-gray-900">{{ totalStats.tasks }}</div>
-        <div class="text-sm text-gray-500 mt-1">Zadań</div>
+        <div class="text-sm text-gray-500 mt-1">{{ pluralize(totalStats.tasks, POLISH_NOUNS.task) }}</div>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div class="text-3xl font-bold text-gray-900">{{ totalStats.achievements }}</div>
-        <div class="text-sm text-gray-500 mt-1">Osiągnięć</div>
+        <div class="text-sm text-gray-500 mt-1">{{ pluralize(totalStats.achievements, POLISH_NOUNS.achievement) }}</div>
       </div>
     </div>
 
@@ -77,7 +78,7 @@ const totalStats = computed(() => {
               <div>
                 <h4 class="font-medium text-gray-900">{{ client.name }}</h4>
                 <p class="text-sm text-gray-500">
-                  {{ client.goals }} cele · {{ client.tasks }} zadań · {{ client.achievements }} osiągnięć
+                  {{ pluralizeWithCount(client.goals, POLISH_NOUNS.goal) }} · {{ pluralizeWithCount(client.tasks, POLISH_NOUNS.task) }} · {{ pluralizeWithCount(client.achievements, POLISH_NOUNS.achievement) }}
                 </p>
               </div>
             </div>
