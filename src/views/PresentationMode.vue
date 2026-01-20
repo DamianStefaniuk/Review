@@ -62,7 +62,11 @@ const exitPresentation = () => {
   if (document.fullscreenElement) {
     document.exitFullscreen()
   }
-  router.push({ name: 'sprint', params: { sprintId: sprint.value?.id } })
+  if (sprint.value?.id) {
+    router.push({ name: 'sprint', params: { sprintId: sprint.value.id } })
+  } else {
+    router.push({ name: 'sprint' })
+  }
 }
 
 const toggleFullscreen = async () => {
@@ -161,8 +165,25 @@ const getGoalTasks = (goal) => {
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
     </div>
 
+    <!-- No data state -->
+    <div v-else-if="!sprint" class="flex flex-col items-center justify-center min-h-screen text-center px-4">
+      <svg class="w-20 h-20 text-white/30 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <h2 class="text-3xl font-bold mb-4">Brak danych do prezentacji</h2>
+      <p class="text-xl text-white/60 mb-8 max-w-md">
+        Nie znaleziono danych sprintu. Upewnij się, że masz skonfigurowany Gist i zsynchronizowane dane z Jira.
+      </p>
+      <button
+        @click="exitPresentation"
+        class="px-8 py-4 bg-white/10 hover:bg-white/20 rounded-xl text-lg font-medium transition-colors"
+      >
+        Wróć do aplikacji
+      </button>
+    </div>
+
     <!-- Presentation -->
-    <div v-else-if="sprint" class="relative min-h-screen flex flex-col">
+    <div v-else class="relative min-h-screen flex flex-col">
       <!-- Top bar -->
       <div class="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 bg-gradient-to-b from-black/30 to-transparent">
         <div class="text-sm text-white/70">
