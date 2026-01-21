@@ -336,7 +336,7 @@ def build_sprint_data(
 
     jira_url = os.getenv('JIRA_URL', '').rstrip('/')
     board_id = os.getenv('JIRA_BOARD_ID', '')
-    timeline_url = f"{jira_url}/jira/software/projects/{os.getenv('JIRA_PROJECT_KEY')}/boards/{board_id}/timeline"
+    timeline_url = f"{jira_url}/jira/software/c/projects/{os.getenv('JIRA_PROJECT_KEY')}/boards/{board_id}/timeline"
 
     # Preserve existing editable fields (from web UI)
     existing_next_plans = existing_data.get('nextSprintPlans', '') if existing_data else ''
