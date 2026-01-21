@@ -18,7 +18,8 @@ const sprints = ref([])
 const currentSprintId = ref(null)
 const loading = ref(true)
 
-onMounted(async () => {
+const loadSprints = async () => {
+  loading.value = true
   try {
     const [sprintList, currentInfo] = await Promise.all([
       loadSprintList(),
@@ -26,15 +27,33 @@ onMounted(async () => {
     ])
     sprints.value = sprintList
     currentSprintId.value = currentInfo.currentSprintId
+    return { sprintList, currentInfo }
+  } catch (error) {
+    console.error('Failed to load sprint list:', error)
+    throw error
+  } finally {
+    loading.value = false
+  }
+}
+
+const refreshSprints = async () => {
+  console.log('[Sidebar] Refreshing sprints...')
+  await loadSprints()
+}
+
+// Expose refresh method for parent components
+defineExpose({ refreshSprints })
+
+onMounted(async () => {
+  try {
+    const { currentInfo } = await loadSprints()
 
     // Navigate to current sprint if no sprint selected
     if (!route.params.sprintId && currentInfo.currentSprintId) {
       router.replace({ name: 'sprint', params: { sprintId: currentInfo.currentSprintId } })
     }
   } catch (error) {
-    console.error('Failed to load sprint list:', error)
-  } finally {
-    loading.value = false
+    // Error already logged in loadSprints
   }
 })
 

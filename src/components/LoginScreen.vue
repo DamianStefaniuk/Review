@@ -88,6 +88,7 @@ function goBack() {
                 <p class="font-medium">Zaznacz uprawnienia</p>
                 <p class="text-sm text-gray-600">W sekcji "Select scopes" zaznacz:</p>
                 <ul class="text-sm text-gray-600 mt-1 space-y-1 ml-4 list-disc">
+                  <li><strong>repo</strong> (cała sekcja repo) - w celu dostępu do bazy danych na prywatnym repozytorium</li>
                   <li><strong>read:org</strong> (w sekcji "admin:org") - do weryfikacji członkostwa</li>
                   <li><strong>workflow</strong> - do uruchamiania synchronizacji Jira</li>
                 </ul>

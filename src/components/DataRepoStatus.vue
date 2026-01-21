@@ -63,22 +63,14 @@ const activeTab = ref('user') // 'user' or 'admin'
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p class="font-medium text-green-800">Polaczenie aktywne</p>
+                  <p class="font-medium text-green-800">Połaczenie aktywne</p>
                   <p class="text-sm text-green-700 mt-1">
-                    Dane sprintow i komentarze sa synchronizowane z prywatnym repozytorium <code class="bg-green-100 px-1 rounded text-xs">plumspzoo/Review-Data</code>.
+                    Dane sprintów i komentarze sa synchronizowane z prywatnym repozytorium.
                   </p>
                   <p class="text-sm text-green-600 mt-2">
                     Zalogowany jako: <strong>{{ authStore.user?.login || 'Nieznany' }}</strong>
                   </p>
                 </div>
-              </div>
-
-              <div class="p-3 bg-gray-50 rounded-lg text-sm">
-                <p class="font-medium text-gray-800 mb-2">Struktura danych:</p>
-                <pre class="text-xs text-gray-600 font-mono bg-white p-2 rounded border">Review-Data/
-├── current-sprint.json  (root)
-└── sprints/
-    └── sprint-XXXX.json</pre>
               </div>
             </div>
 

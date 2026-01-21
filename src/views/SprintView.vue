@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadSprint, loadCurrentSprintInfo } from '../services/dataLoader'
 import { addCommentToRepo, isRepoDataConfigured } from '../services/repoDataService'
@@ -17,6 +17,7 @@ import CloseSprintButton from '../components/CloseSprintButton.vue'
 import DataRepoStatus from '../components/DataRepoStatus.vue'
 
 const authStore = useAuthStore()
+const refreshSidebar = inject('refreshSidebar', () => {})
 
 const route = useRoute()
 const sprint = ref(null)
@@ -91,9 +92,12 @@ const handleAddComment = async ({ goalId, comment, isSideGoal }) => {
   }
 }
 
-const handleSyncComplete = () => {
-  // Reload sprint data after sync
-  loadSprintData(route.params.sprintId)
+const handleSyncComplete = async () => {
+  // Reload sprint data and sidebar after sync
+  await Promise.all([
+    loadSprintData(route.params.sprintId),
+    refreshSidebar()
+  ])
 }
 
 const handleNextSprintPlansUpdate = (newContent) => {

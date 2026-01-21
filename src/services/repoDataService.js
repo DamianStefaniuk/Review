@@ -8,6 +8,18 @@ import { useAuthStore } from '../stores/authStore'
 
 const GITHUB_API_URL = 'https://api.github.com'
 
+/**
+ * Decode base64 content from GitHub API with proper UTF-8 support
+ * GitHub returns base64 with newlines that need to be removed
+ */
+function decodeBase64Content(base64String) {
+  // Remove newlines that GitHub adds to base64 content
+  const cleanBase64 = base64String.replace(/\n/g, '')
+  // Decode base64 to bytes, then decode as UTF-8
+  const bytes = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0))
+  return new TextDecoder('utf-8').decode(bytes)
+}
+
 // Repository configuration - loaded from config.json
 let repoConfig = null
 
@@ -102,8 +114,8 @@ export async function fetchRepoFile(filename) {
 
   const data = await response.json()
 
-  // Decode base64 content
-  const content = JSON.parse(atob(data.content))
+  // Decode base64 content with proper UTF-8 support
+  const content = JSON.parse(decodeBase64Content(data.content))
 
   return {
     content,
@@ -142,8 +154,8 @@ export async function fetchRootFile(filename) {
 
   const data = await response.json()
 
-  // Decode base64 content
-  const content = JSON.parse(atob(data.content))
+  // Decode base64 content with proper UTF-8 support
+  const content = JSON.parse(decodeBase64Content(data.content))
 
   return {
     content,
@@ -361,11 +373,13 @@ export async function loadCurrentSprintInfoFromRepo() {
  */
 export async function loadSprintListFromRepo() {
   const sprintIds = await listSprintFiles()
+  console.log('[repoDataService] Found sprint IDs:', sprintIds)
   const sprints = []
 
   for (const id of sprintIds) {
     try {
       const sprint = await loadSprintFromRepo(id)
+      console.log(`[repoDataService] Loaded sprint ${id}:`, { name: sprint.name, status: sprint.status })
       sprints.push({
         id: sprint.id,
         name: sprint.name,
@@ -373,11 +387,12 @@ export async function loadSprintListFromRepo() {
         startDate: sprint.startDate,
         endDate: sprint.endDate
       })
-    } catch {
-      // Skip sprints that fail to load
+    } catch (error) {
+      console.error(`[repoDataService] Failed to load sprint ${id}:`, error)
     }
   }
 
+  console.log('[repoDataService] Returning sprints:', sprints)
   return sprints
 }
 

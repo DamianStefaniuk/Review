@@ -10,6 +10,7 @@ const authStore = useAuthStore()
 const sidebarCollapsed = ref(false)
 const presentationMode = ref(false)
 const route = useRoute()
+const sidebarRef = ref(null)
 
 onMounted(() => {
   authStore.loadFromStorage()
@@ -28,8 +29,15 @@ const togglePresentationMode = () => {
   }
 }
 
+const refreshSidebar = async () => {
+  if (sidebarRef.value?.refreshSprints) {
+    await sidebarRef.value.refreshSprints()
+  }
+}
+
 provide('presentationMode', presentationMode)
 provide('togglePresentationMode', togglePresentationMode)
+provide('refreshSidebar', refreshSidebar)
 </script>
 
 <template>
@@ -40,6 +48,7 @@ provide('togglePresentationMode', togglePresentationMode)
   <div v-else class="min-h-screen flex" :class="{ 'presentation-mode': presentationMode }">
     <!-- Sidebar -->
     <Sidebar
+      ref="sidebarRef"
       v-if="!presentationMode"
       :collapsed="sidebarCollapsed"
       @toggle="toggleSidebar"
