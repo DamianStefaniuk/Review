@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { loadSprint, loadCurrentSprintInfo, calculateSprintStats, getTasksForGoal } from '../services/dataLoader'
 import ProgressBar from '../components/ProgressBar.vue'
+import { pluralize, pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
 
 const route = useRoute()
 const router = useRouter()
@@ -228,11 +229,11 @@ const getGoalTasks = (goal) => {
             <div class="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
               <div class="bg-white/10 rounded-xl p-6">
                 <div class="text-4xl font-bold">{{ stats.completedGoals }}/{{ stats.totalGoals }}</div>
-                <div class="text-white/60 mt-2">Cele</div>
+                <div class="text-white/60 mt-2 capitalize">{{ pluralize(stats.totalGoals, POLISH_NOUNS.goal) }}</div>
               </div>
               <div class="bg-white/10 rounded-xl p-6">
                 <div class="text-4xl font-bold">{{ stats.completedTasks }}/{{ stats.totalTasks }}</div>
-                <div class="text-white/60 mt-2">Zadania</div>
+                <div class="text-white/60 mt-2 capitalize">{{ pluralize(stats.totalTasks, POLISH_NOUNS.task) }}</div>
               </div>
               <div class="bg-white/10 rounded-xl p-6">
                 <div class="text-4xl font-bold">{{ stats.avgProgress }}%</div>
@@ -275,7 +276,7 @@ const getGoalTasks = (goal) => {
 
             <div class="grid grid-cols-2 gap-8">
               <div>
-                <h3 class="text-xl font-semibold mb-4 text-white/70">Zadania</h3>
+                <h3 class="text-xl font-semibold mb-4 text-white/70 capitalize">{{ pluralize(getGoalTasks(currentSlideData.goal).length, POLISH_NOUNS.task) }}</h3>
                 <div class="space-y-2">
                   <div
                     v-for="task in getGoalTasks(currentSlideData.goal)"

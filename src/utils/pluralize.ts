@@ -22,13 +22,13 @@ export function pluralize(count: number, forms: PluralForms): string {
 }
 
 export const POLISH_NOUNS = {
-  task: { one: 'zadanie', few: 'zadania', many: 'zadan' },
-  goal: { one: 'cel', few: 'cele', many: 'celow' },
-  sideGoal: { one: 'cel poboczny', few: 'cele poboczne', many: 'celow pobocznych' },
-  achievement: { one: 'osiagniecie', few: 'osiagniecia', many: 'osiagniec' },
+  task: { one: 'zadanie', few: 'zadania', many: 'zadań' },
+  goal: { one: 'cel główny', few: 'cele główne', many: 'celów głównych' },
+  sideGoal: { one: 'cel poboczny', few: 'cele poboczne', many: 'celów pobocznych' },
+  achievement: { one: 'osiągnięcie', few: 'osiągnięcia', many: 'osiągnięć' },
   comment: { one: 'komentarz', few: 'komentarze', many: 'komentarzy' },
-  client: { one: 'klient', few: 'klientow', many: 'klientow' },
-  completed: { one: 'ukonczony', few: 'ukonczone', many: 'ukonczonych' },
+  client: { one: 'klient', few: 'klientów', many: 'klientów' },
+  completed: { one: 'ukończony', few: 'ukończone', many: 'ukończonych' },
 } as const;
 
 export function pluralizeWithCount(count: number, forms: PluralForms): string {

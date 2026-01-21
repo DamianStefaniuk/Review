@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { POLISH_NOUNS } from '../utils/pluralize'
 
 const props = defineProps({
   sprint: {
@@ -99,7 +100,7 @@ const generatePdfContent = () => {
   // Side goals section
   const sideGoals = sprint.sideGoals || []
   if (sideGoals.length > 0) {
-    html += `<h2>Cele poboczne</h2>`
+    html += `<h2 style="text-transform: capitalize;">${POLISH_NOUNS.sideGoal.few}</h2>`
     sideGoals.forEach((sideGoal, index) => {
       html += `
         <div class="goal" style="background: #fffbeb;">

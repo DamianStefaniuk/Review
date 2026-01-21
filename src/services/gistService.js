@@ -255,7 +255,7 @@ export async function loadSprintListFromGist() {
 /**
  * Add comment to a goal in Gist
  */
-export async function addCommentToGist(sprintId, goalId, comment) {
+export async function addCommentToGist(sprintId, goalId, comment, isSideGoal = false) {
   const filename = `sprint-${sprintId}.json`
   const sprintData = await fetchGistFile(filename)
 
@@ -263,10 +263,18 @@ export async function addCommentToGist(sprintId, goalId, comment) {
     throw new Error(`Sprint ${sprintId} not found in Gist`)
   }
 
-  // Find the goal and add comment
-  const goal = sprintData.goals.find(g => g.id === goalId)
-  if (!goal) {
-    throw new Error(`Goal ${goalId} not found in sprint ${sprintId}`)
+  // Find the goal in main goals or side goals
+  let goal
+  if (isSideGoal) {
+    goal = sprintData.sideGoals?.find(g => g.id === goalId)
+    if (!goal) {
+      throw new Error(`Side goal ${goalId} not found in sprint ${sprintId}`)
+    }
+  } else {
+    goal = sprintData.goals.find(g => g.id === goalId)
+    if (!goal) {
+      throw new Error(`Goal ${goalId} not found in sprint ${sprintId}`)
+    }
   }
 
   if (!goal.comments) {

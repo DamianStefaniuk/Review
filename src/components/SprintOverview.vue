@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import ProgressBar from './ProgressBar.vue'
 import { calculateSprintStats } from '../services/dataLoader'
-import { pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
+import { pluralize, pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
 
 const props = defineProps({
   sprint: {
@@ -71,19 +71,19 @@ const statusBadge = computed(() => {
           <div class="text-2xl font-semibold text-gray-900">
             {{ stats.completedGoals }}/{{ stats.totalGoals }}
           </div>
-          <div class="text-sm text-gray-500">Cele glowne</div>
-        </div>
-        <div class="bg-white/60 rounded-lg px-4 py-3">
-          <div class="text-2xl font-semibold text-gray-900">
-            {{ stats.completedTasks }}/{{ stats.totalTasks }}
-          </div>
-          <div class="text-sm text-gray-500">Zadania</div>
+          <div class="text-sm text-gray-500 capitalize">{{ pluralize(stats.totalGoals, POLISH_NOUNS.goal) }}</div>
         </div>
         <div class="bg-white/60 rounded-lg px-4 py-3">
           <div class="text-2xl font-semibold text-gray-900">
             {{ stats.completedSideGoals }}/{{ stats.totalSideGoals }}
           </div>
-          <div class="text-sm text-gray-500">Cele poboczne</div>
+          <div class="text-sm text-gray-500 capitalize">{{ pluralize(stats.totalSideGoals, POLISH_NOUNS.sideGoal) }}</div>
+        </div>
+        <div class="bg-white/60 rounded-lg px-4 py-3">
+          <div class="text-2xl font-semibold text-gray-900">
+            {{ stats.completedTasks }}/{{ stats.totalTasks }}
+          </div>
+          <div class="text-sm text-gray-500 capitalize">{{ pluralize(stats.totalTasks, POLISH_NOUNS.task) }}</div>
         </div>
       </div>
     </div>

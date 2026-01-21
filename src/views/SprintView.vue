@@ -53,10 +53,16 @@ const handleCloseGoal = () => {
   selectedGoal.value = null
 }
 
-const handleAddComment = async ({ goalId, comment }) => {
+const handleAddComment = async ({ goalId, comment, isSideGoal }) => {
   if (!sprint.value) return
 
-  const goal = sprint.value.goals.find(g => g.id === goalId)
+  // Find goal in main goals or side goals
+  let goal
+  if (isSideGoal) {
+    goal = sprint.value.sideGoals?.find(g => g.id === goalId)
+  } else {
+    goal = sprint.value.goals.find(g => g.id === goalId)
+  }
   if (!goal) return
 
   const newComment = {
@@ -66,13 +72,18 @@ const handleAddComment = async ({ goalId, comment }) => {
     createdAt: new Date().toISOString()
   }
 
+  // Initialize comments array if needed
+  if (!goal.comments) {
+    goal.comments = []
+  }
+
   // Add comment locally
   goal.comments.push(newComment)
 
   // Try to save to Gist if configured
   if (isGistConfigured()) {
     try {
-      await addCommentToGist(sprint.value.id, goalId, newComment)
+      await addCommentToGist(sprint.value.id, goalId, newComment, isSideGoal)
     } catch (err) {
       console.error('Failed to save comment to Gist:', err)
       // Comment is still added locally
@@ -276,6 +287,7 @@ onMounted(() => {
               v-if="sprint.sideGoals && sprint.sideGoals.length > 0"
               :side-goals="sprint.sideGoals"
               :sprint="sprint"
+              @select-goal="handleSelectGoal"
             />
 
             <AchievementsList

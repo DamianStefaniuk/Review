@@ -2,7 +2,8 @@
 import { computed } from 'vue'
 import ProgressBar from './ProgressBar.vue'
 import CommentEditor from './CommentEditor.vue'
-import { getTasksForGoal } from '../services/dataLoader'
+import { getTasksForGoal, getTasksForSideGoal } from '../services/dataLoader'
+import { pluralize, pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
 
 const props = defineProps({
   goal: {
@@ -17,7 +18,16 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'addComment'])
 
-const tasks = computed(() => getTasksForGoal(props.sprint, props.goal))
+const isSideGoal = computed(() => props.goal.isSideGoal === true)
+
+const tasks = computed(() => {
+  if (isSideGoal.value) {
+    return getTasksForSideGoal(props.sprint, props.goal)
+  }
+  return getTasksForGoal(props.sprint, props.goal)
+})
+
+const comments = computed(() => props.goal.comments || [])
 
 const tasksByStatus = computed(() => {
   const grouped = {
@@ -52,7 +62,7 @@ const statusColors = {
 }
 
 const handleAddComment = (comment) => {
-  emit('addComment', { goalId: props.goal.id, comment })
+  emit('addComment', { goalId: props.goal.id, comment, isSideGoal: isSideGoal.value })
 }
 </script>
 
@@ -75,13 +85,19 @@ const handleAddComment = (comment) => {
           </div>
 
           <div class="flex items-center gap-4 text-sm text-gray-500">
+            <span
+              v-if="isSideGoal"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full"
+            >
+              Cel poboczny
+            </span>
             <span v-if="goal.client" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-full">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
               {{ goal.client }}
             </span>
-            <span class="inline-flex items-center gap-1.5">
+            <span v-if="!isSideGoal" class="inline-flex items-center gap-1.5">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
@@ -108,8 +124,8 @@ const handleAddComment = (comment) => {
 
     <!-- Tasks -->
     <div class="p-6 border-b border-gray-200">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">
-        Zadania ({{ tasks.length }})
+      <h3 class="text-lg font-semibold text-gray-900 mb-4 capitalize">
+        {{ pluralizeWithCount(tasks.length, POLISH_NOUNS.task) }}
       </h3>
 
       <div class="space-y-4">
@@ -190,12 +206,12 @@ const handleAddComment = (comment) => {
     <!-- Comments -->
     <div class="p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">
-        Komentarze ({{ goal.comments.length }})
+        Komentarze ({{ comments.length }})
       </h3>
 
-      <div v-if="goal.comments.length > 0" class="space-y-4 mb-6">
+      <div v-if="comments.length > 0" class="space-y-4 mb-6">
         <div
-          v-for="comment in goal.comments"
+          v-for="comment in comments"
           :key="comment.id"
           class="p-4 bg-gray-50 rounded-lg"
         >
