@@ -6,6 +6,7 @@ import { addCommentToGist, isGistConfigured } from '../services/gistService'
 import { useAuthStore } from '../stores/authStore'
 import SprintOverview from '../components/SprintOverview.vue'
 import GoalDetail from '../components/GoalDetail.vue'
+import SideGoalsList from '../components/SideGoalsList.vue'
 import AchievementsList from '../components/AchievementsList.vue'
 import AllTasks from '../components/AllTasks.vue'
 import NextSprintPlans from '../components/NextSprintPlans.vue'
@@ -88,6 +89,13 @@ const handleNextSprintPlansUpdate = (newContent) => {
   // Update local sprint data
   if (sprint.value) {
     sprint.value.nextSprintPlans = newContent
+  }
+}
+
+const handleAchievementsUpdate = (newContent) => {
+  // Update local sprint data
+  if (sprint.value) {
+    sprint.value.achievements = newContent
   }
 }
 
@@ -264,8 +272,16 @@ onMounted(() => {
               @select-goal="handleSelectGoal"
             />
 
+            <SideGoalsList
+              v-if="sprint.sideGoals && sprint.sideGoals.length > 0"
+              :side-goals="sprint.sideGoals"
+              :sprint="sprint"
+            />
+
             <AchievementsList
-              :achievements="sprint.achievements"
+              :content="sprint.achievements"
+              :sprint-id="sprint.id"
+              @update="handleAchievementsUpdate"
             />
           </div>
 

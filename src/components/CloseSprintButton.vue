@@ -72,12 +72,12 @@ const handleCloseSprint = async () => {
 </script>
 
 <template>
-  <div>
+  <div class="relative">
     <!-- Button - only show for active sprints -->
     <button
       v-if="sprintStatus === 'active'"
       @click="openModal"
-      class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 rounded-lg hover:bg-orange-200 transition-colors min-w-[160px]"
+      class="inline-flex items-center justify-center gap-2 px-4 py-2 h-10 text-sm font-medium text-orange-700 bg-orange-100 rounded-lg hover:bg-orange-200 transition-colors min-w-[160px]"
     >
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -91,7 +91,7 @@ const handleCloseSprint = async () => {
     </button>
 
     <!-- Error message if Gist not configured -->
-    <div v-if="error && !showModal" class="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+    <div v-if="error && !showModal" class="absolute top-full left-0 mt-2 p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 max-w-xs z-10">
       {{ error }}
     </div>
 

@@ -17,7 +17,10 @@ const clientList = computed(() => {
   return Object.entries(stats.value)
     .map(([name, data]) => ({
       name,
-      ...data,
+      goals: data.goals || 0,
+      tasks: data.tasks || 0,
+      completedTasks: data.completedTasks || 0,
+      sideGoals: data.sideGoals || 0,
       progress: data.tasks > 0 ? Math.round((data.completedTasks / data.tasks) * 100) : 0
     }))
     .sort((a, b) => b.tasks - a.tasks)
@@ -29,9 +32,9 @@ const totalStats = computed(() => {
       goals: acc.goals + client.goals,
       tasks: acc.tasks + client.tasks,
       completedTasks: acc.completedTasks + client.completedTasks,
-      achievements: acc.achievements + client.achievements
+      sideGoals: acc.sideGoals + client.sideGoals
     }),
-    { goals: 0, tasks: 0, completedTasks: 0, achievements: 0 }
+    { goals: 0, tasks: 0, completedTasks: 0, sideGoals: 0 }
   )
 })
 </script>
@@ -53,8 +56,8 @@ const totalStats = computed(() => {
         <div class="text-sm text-gray-500 mt-1">{{ pluralize(totalStats.tasks, POLISH_NOUNS.task) }}</div>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-        <div class="text-3xl font-bold text-gray-900">{{ totalStats.achievements }}</div>
-        <div class="text-sm text-gray-500 mt-1">{{ pluralize(totalStats.achievements, POLISH_NOUNS.achievement) }}</div>
+        <div class="text-3xl font-bold text-gray-900">{{ totalStats.sideGoals }}</div>
+        <div class="text-sm text-gray-500 mt-1">{{ pluralize(totalStats.sideGoals, POLISH_NOUNS.sideGoal) }}</div>
       </div>
     </div>
 
@@ -78,7 +81,7 @@ const totalStats = computed(() => {
               <div>
                 <h4 class="font-medium text-gray-900">{{ client.name }}</h4>
                 <p class="text-sm text-gray-500">
-                  {{ pluralizeWithCount(client.goals, POLISH_NOUNS.goal) }} · {{ pluralizeWithCount(client.tasks, POLISH_NOUNS.task) }} · {{ pluralizeWithCount(client.achievements, POLISH_NOUNS.achievement) }}
+                  {{ pluralizeWithCount(client.goals, POLISH_NOUNS.goal) }} · {{ pluralizeWithCount(client.tasks, POLISH_NOUNS.task) }} · {{ pluralizeWithCount(client.sideGoals, POLISH_NOUNS.sideGoal) }}
                 </p>
               </div>
             </div>

@@ -19,6 +19,11 @@ const props = defineProps({
   animated: {
     type: Boolean,
     default: false
+  },
+  color: {
+    type: String,
+    default: null,
+    validator: (value) => !value || ['primary', 'amber', 'green', 'blue', 'red'].includes(value)
   }
 })
 
@@ -31,6 +36,20 @@ const sizeClasses = computed(() => {
 })
 
 const colorClass = computed(() => {
+  // If custom color is provided, use it (with completion override)
+  if (props.color) {
+    if (props.percent === 100) return 'bg-green-500'
+    const colorMap = {
+      primary: 'bg-primary-500',
+      amber: 'bg-amber-500',
+      green: 'bg-green-500',
+      blue: 'bg-blue-500',
+      red: 'bg-red-500'
+    }
+    return colorMap[props.color] || 'bg-primary-500'
+  }
+
+  // Default color based on progress
   if (props.percent === 100) return 'bg-green-500'
   if (props.percent >= 75) return 'bg-primary-500'
   if (props.percent >= 50) return 'bg-yellow-500'

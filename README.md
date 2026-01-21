@@ -23,19 +23,20 @@ Aplikacja webowa do prezentacji i archiwizacji review sprintów zespołu. Integr
 
 ---
 
-## Funkcjonalności
+## Funkcjonalnosci
 
-- **Przegląd sprintów** - wyświetlanie celów głównych z progress barami
-- **Szczegóły celów** - lista zadań, statusy, komentarze
-- **Osiągnięcia dodatkowe** - dodatkowe cele zrealizowane w sprincie
-- **Wszystkie zadania** - widok wszystkich zadań z sortowaniem i filtrowaniem
+- **Przeglad sprintow** - wyswietlanie celow glownych z progress barami
+- **Cele poboczne** - dodatkowe cele z Jira (elementy z myslnikiem) z wlasnymi progress barami
+- **Osiagniecia dodatkowe** - edytowalny tekst Markdown do dokumentowania osiagniec
+- **Szczegoly celow** - lista zadan, statusy, komentarze
+- **Wszystkie zadania** - widok wszystkich zadan z sortowaniem i filtrowaniem
 - **Filtrowanie po klientach** - grupowanie i filtrowanie po `[NAZWA_KLIENTA]`
-- **Tryb prezentacji** - pełnoekranowy tryb do przeprowadzania review
+- **Tryb prezentacji** - pelnoekranowy tryb do przeprowadzania review
 - **Eksport do PDF** - generowanie PDF z aktualnego review
-- **Autoryzacja GitHub PAT** - logowanie przez Personal Access Token z kontrolą członkostwa w organizacji
-- **Przechowywanie danych w GitHub Gist** - komentarze i dane sprintów przechowywane w Gist (bez commitów do repozytorium)
-- **Synchronizacja z Jira na żądanie** - przycisk wyzwalający GitHub Actions workflow
-- **Zamykanie sprintu** - możliwość zamknięcia sprintu i utworzenia nowego z poziomu UI
+- **Autoryzacja GitHub PAT** - logowanie przez Personal Access Token z kontrola czlonkostwa w organizacji
+- **Przechowywanie danych w GitHub Gist** - komentarze i dane sprintow przechowywane w Gist (bez commitow do repozytorium)
+- **Synchronizacja z Jira na zadanie** - przycisk wyzwalajacy GitHub Actions workflow
+- **Zamykanie sprintu** - mozliwosc zamkniecia sprintu i utworzenia nowego z poziomu UI
 
 ---
 
@@ -365,49 +366,65 @@ Wynik buildu znajdziesz w folderze `dist/`.
 
 ## Format opisu sprintu w Jira
 
-Parser obsługuje **dwa formaty** opisu sprintu:
+Aplikacja rozpoznaje **trzy kategorie celow**:
 
-### Format 1: Z nagłówkami sekcji
+| Kategoria | Zrodlo | Tag w Jira | Edycja z UI |
+|-----------|--------|------------|-------------|
+| **Cele glowne** | Jira (numerowane 1., 2.) | `cel1`, `cel2` | Nie |
+| **Cele poboczne** | Jira (z myslnikiem -) | `extra1`, `extra2` | Nie |
+| **Osiagniecia dodatkowe** | Recznie z interfejsu | brak | Tak |
+
+Parser obsluguje **dwa formaty** opisu sprintu:
+
+### Format 1: Z naglowkami sekcji
 
 ```
-## Cele główne
-1. [Klient A] Implementacja zarządcy nagrzewnicy
+## Cele glowne
+1. [Klient A] Implementacja zarzadcy nagrzewnicy
 2. [Klient B] Panel administracyjny
-3. Optymalizacja wydajności (bez klienta)
+3. Optymalizacja wydajnosci (bez klienta)
 
-## Osiągnięcia dodatkowe
+## Cele poboczne
 - [Klient A] Zmiana logo
 - [Klient C] Hotfix logowania
 - Aktualizacja dokumentacji
 ```
 
-### Format 2: Automatyczne rozpoznawanie (bez nagłówków)
+### Format 2: Automatyczne rozpoznawanie (bez naglowkow)
 
 ```
-1. [KLIENT_NAZWA] Cel głowny 1
-2. [KLIENT_NAZWA] Cel główny 2
-3. Cel główny 3 (bez klienta/globalny)
+1. [KLIENT_NAZWA] Cel glowny 1
+2. [KLIENT_NAZWA] Cel glowny 2
+3. Cel glowny 3 (bez klienta/globalny)
 
-- [KLIENT_NAZWA] Osiągnięcie dodatkowe
-- [KLIENT_NAZWA] Osiągniecie dodatkowe
-- Osiągniecie dodatkowe
+- [KLIENT_NAZWA] Cel poboczny 1
+- [KLIENT_NAZWA] Cel poboczny 2
+- Cel poboczny bez klienta
 ```
 
 W tym formacie:
-- **Elementy numerowane** (1. 2. 3.) → rozpoznawane jako **cele**
-- **Elementy z myślnikiem** (- ) → rozpoznawane jako **osiągnięcia**
+- **Elementy numerowane** (1. 2. 3.) -> rozpoznawane jako **cele glowne**
+- **Elementy z myslnikiem** (- ) -> rozpoznawane jako **cele poboczne**
 
-**Uwaga:** Plany na następny sprint są edytowalne bezpośrednio z aplikacji webowej (zakładka "Następny sprint") i NIE są pobierane z opisu sprintu w Jira.
+### Etykiety zadan w Jira:
 
-### Etykiety zadań w Jira:
+Aby zadania byly przypisane do celow, dodaj etykiety:
 
-Aby zadania były przypisane do celów, dodaj etykiety:
+**Cele glowne:**
+- `cel1` - zadanie nalezy do celu glownego 1
+- `cel2` - zadanie nalezy do celu glownego 2
 
-- `cel1` - zadanie należy do celu 1
-- `cel2` - zadanie należy do celu 2
-- `cel1`, `cel2` - zadanie wpływa na oba cele
+**Cele poboczne:**
+- `extra1` - zadanie nalezy do celu pobocznego 1
+- `extra2` - zadanie nalezy do celu pobocznego 2
 
-Zadania bez etykiet `cel*` pojawią się w sekcji "Wszystkie zadania".
+Zadania bez etykiet `cel*` lub `extra*` pojawia sie w sekcji "Wszystkie zadania".
+
+### Osiagniecia dodatkowe
+
+Osiagniecia dodatkowe sa **edytowalne bezposrednio z aplikacji webowej**. Obsluguja format Markdown i sa zapisywane do GitHub Gist. Mozna dodawac dowolne informacje o osiagniecach, ktore nie sa sledzone przez zadania w Jira.
+
+**Uwaga:** Plany na nastepny sprint rowniez sa edytowalne bezposrednio z aplikacji webowej (zakladka "Nastepny sprint") i NIE sa pobierane z opisu sprintu w Jira.
 
 ---
 

@@ -71,7 +71,7 @@ const statusBadge = computed(() => {
           <div class="text-2xl font-semibold text-gray-900">
             {{ stats.completedGoals }}/{{ stats.totalGoals }}
           </div>
-          <div class="text-sm text-gray-500">Cele</div>
+          <div class="text-sm text-gray-500">Cele glowne</div>
         </div>
         <div class="bg-white/60 rounded-lg px-4 py-3">
           <div class="text-2xl font-semibold text-gray-900">
@@ -81,9 +81,9 @@ const statusBadge = computed(() => {
         </div>
         <div class="bg-white/60 rounded-lg px-4 py-3">
           <div class="text-2xl font-semibold text-gray-900">
-            {{ stats.completedAchievements }}/{{ stats.totalAchievements }}
+            {{ stats.completedSideGoals }}/{{ stats.totalSideGoals }}
           </div>
-          <div class="text-sm text-gray-500">Osiągnięcia</div>
+          <div class="text-sm text-gray-500">Cele poboczne</div>
         </div>
       </div>
     </div>

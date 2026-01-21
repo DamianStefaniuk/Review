@@ -300,3 +300,33 @@ export async function updateCurrentSprintInfoInGist(sprintId, isActive) {
   })
   return true
 }
+
+/**
+ * Add comment to a side goal in Gist
+ */
+export async function addCommentToSideGoalInGist(sprintId, sideGoalId, comment) {
+  const filename = `sprint-${sprintId}.json`
+  const sprintData = await fetchGistFile(filename)
+
+  if (!sprintData) {
+    throw new Error(`Sprint ${sprintId} not found in Gist`)
+  }
+
+  // Find the side goal and add comment
+  const sideGoals = sprintData.sideGoals || []
+  const sideGoal = sideGoals.find(sg => sg.id === sideGoalId)
+  if (!sideGoal) {
+    throw new Error(`Side goal ${sideGoalId} not found in sprint ${sprintId}`)
+  }
+
+  if (!sideGoal.comments) {
+    sideGoal.comments = []
+  }
+
+  sideGoal.comments.push(comment)
+
+  // Save updated sprint data
+  await updateGistFile(filename, sprintData)
+
+  return true
+}

@@ -116,12 +116,20 @@ export function getTasksForGoal(sprint, goal) {
 }
 
 /**
- * Get tasks not assigned to any goal
+ * Get tasks for a specific side goal
+ */
+export function getTasksForSideGoal(sprint, sideGoal) {
+  return sideGoal.tasks.map(taskKey => getTaskByKey(sprint, taskKey)).filter(Boolean)
+}
+
+/**
+ * Get tasks not assigned to any goal or side goal
  */
 export function getUnassignedTasks(sprint) {
-  const assignedTaskKeys = new Set(
-    sprint.goals.flatMap(goal => goal.tasks)
-  )
+  const assignedTaskKeys = new Set([
+    ...sprint.goals.flatMap(goal => goal.tasks),
+    ...(sprint.sideGoals || []).flatMap(sg => sg.tasks)
+  ])
   return sprint.tasks.filter(task => !assignedTaskKeys.has(task.key))
 }
 
@@ -135,9 +143,12 @@ export function getClients(sprint) {
     if (goal.client) clients.add(goal.client)
   })
 
-  sprint.achievements.forEach(achievement => {
-    if (achievement.client) clients.add(achievement.client)
-  })
+  // Include clients from side goals
+  if (sprint.sideGoals) {
+    sprint.sideGoals.forEach(sideGoal => {
+      if (sideGoal.client) clients.add(sideGoal.client)
+    })
+  }
 
   return Array.from(clients).sort()
 }
@@ -151,11 +162,11 @@ export function filterGoalsByClient(goals, client) {
 }
 
 /**
- * Filter achievements by client
+ * Filter side goals by client
  */
-export function filterAchievementsByClient(achievements, client) {
-  if (!client) return achievements
-  return achievements.filter(achievement => achievement.client === client)
+export function filterSideGoalsByClient(sideGoals, client) {
+  if (!client) return sideGoals
+  return sideGoals.filter(sideGoal => sideGoal.client === client)
 }
 
 /**
@@ -166,8 +177,11 @@ export function calculateSprintStats(sprint) {
   const completedGoals = sprint.goals.filter(g => g.completed).length
   const totalTasks = sprint.tasks.length
   const completedTasks = sprint.tasks.filter(t => t.status === 'Done').length
-  const totalAchievements = sprint.achievements.length
-  const completedAchievements = sprint.achievements.filter(a => a.completed).length
+
+  // Side goals statistics
+  const sideGoals = sprint.sideGoals || []
+  const totalSideGoals = sideGoals.length
+  const completedSideGoals = sideGoals.filter(sg => sg.completed).length
 
   const avgProgress = totalGoals > 0
     ? Math.round(sprint.goals.reduce((sum, g) => sum + g.completionPercent, 0) / totalGoals)
@@ -178,8 +192,8 @@ export function calculateSprintStats(sprint) {
     completedGoals,
     totalTasks,
     completedTasks,
-    totalAchievements,
-    completedAchievements,
+    totalSideGoals,
+    completedSideGoals,
     avgProgress
   }
 }
@@ -193,7 +207,7 @@ export function getClientStats(sprint) {
   sprint.goals.forEach(goal => {
     const client = goal.client || 'Brak klienta'
     if (!stats[client]) {
-      stats[client] = { goals: 0, tasks: 0, completedTasks: 0, achievements: 0 }
+      stats[client] = { goals: 0, tasks: 0, completedTasks: 0, sideGoals: 0 }
     }
     stats[client].goals++
 
@@ -202,12 +216,18 @@ export function getClientStats(sprint) {
     stats[client].completedTasks += goalTasks.filter(t => t.status === 'Done').length
   })
 
-  sprint.achievements.forEach(achievement => {
-    const client = achievement.client || 'Brak klienta'
+  // Include side goals in stats
+  const sideGoals = sprint.sideGoals || []
+  sideGoals.forEach(sideGoal => {
+    const client = sideGoal.client || 'Brak klienta'
     if (!stats[client]) {
-      stats[client] = { goals: 0, tasks: 0, completedTasks: 0, achievements: 0 }
+      stats[client] = { goals: 0, tasks: 0, completedTasks: 0, sideGoals: 0 }
     }
-    stats[client].achievements++
+    stats[client].sideGoals++
+
+    const sgTasks = getTasksForSideGoal(sprint, sideGoal)
+    stats[client].tasks += sgTasks.length
+    stats[client].completedTasks += sgTasks.filter(t => t.status === 'Done').length
   })
 
   return stats

@@ -96,16 +96,33 @@ const generatePdfContent = () => {
     `
   })
 
-  if (sprint.achievements.length > 0) {
-    html += `<h2>Osiągnięcia dodatkowe</h2>`
-    sprint.achievements.forEach(achievement => {
+  // Side goals section
+  const sideGoals = sprint.sideGoals || []
+  if (sideGoals.length > 0) {
+    html += `<h2>Cele poboczne</h2>`
+    sideGoals.forEach((sideGoal, index) => {
       html += `
-        <div class="achievement">
-          ${achievement.completed ? '✓' : '○'} ${achievement.title}
-          ${achievement.client ? `<span style="color: #6b7280; font-size: 12px;">(${achievement.client})</span>` : ''}
+        <div class="goal" style="background: #fffbeb;">
+          <div class="goal-title">${index + 1}. ${sideGoal.title}</div>
+          <div class="goal-meta">
+            ${sideGoal.client ? `Klient: ${sideGoal.client} · ` : ''}
+            Postep: ${sideGoal.completionPercent}% ·
+            ${sideGoal.completed ? '✓ Ukonczony' : 'W trakcie'}
+          </div>
+          <div class="progress">
+            <div class="progress-bar" style="width: ${sideGoal.completionPercent}%; background: #f59e0b;"></div>
+          </div>
         </div>
       `
     })
+  }
+
+  // Achievements section (Markdown text)
+  if (sprint.achievements && sprint.achievements.trim()) {
+    html += `
+      <h2>Osiagniecia dodatkowe</h2>
+      <div style="white-space: pre-wrap; font-size: 14px;">${sprint.achievements}</div>
+    `
   }
 
   html += `<h2>Wszystkie zadania</h2>`
@@ -153,7 +170,7 @@ const generatePdfContent = () => {
   <button
     @click="exportToPdf"
     :disabled="isExporting"
-    class="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[160px]"
+    class="flex items-center justify-center gap-2 px-4 py-2 h-10 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[160px]"
   >
     <svg v-if="!isExporting" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

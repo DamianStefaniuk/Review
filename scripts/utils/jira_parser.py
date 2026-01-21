@@ -1,7 +1,7 @@
 """
 Jira Sprint Description Parser
 
-Parses sprint goals and achievements from Jira sprint description.
+Parses sprint goals and side goals from Jira sprint description.
 
 Supported formats:
 
@@ -10,16 +10,20 @@ Format 1 (with headers):
 1. [KLIENT] Opis celu
 2. [KLIENT] Inny cel
 
-## Osiągnięcia dodatkowe
-- [KLIENT] Opis osiągnięcia
+## Cele poboczne
+- [KLIENT] Opis celu pobocznego
 - Opis bez klienta
 
 Format 2 (auto-detect by list markers):
 1. [KLIENT] Cel 1          <- numbered items = goals
 2. [KLIENT] Cel 2
 
-- [KLIENT] Osiągnięcie 1   <- dash items = achievements
-- [KLIENT] Osiągnięcie 2
+- [KLIENT] Cel poboczny 1   <- dash items = side goals
+- [KLIENT] Cel poboczny 2
+
+Labels:
+- cel1, cel2, ... - main goals
+- extra1, extra2, ... - side goals
 """
 
 import re
@@ -56,21 +60,21 @@ def _is_section_header(line: str) -> bool:
 
 def parse_sprint_description(description: str) -> Dict:
     """
-    Parse sprint description to extract goals and achievements.
+    Parse sprint description to extract goals and side goals.
 
     Supports two modes:
-    1. Explicit headers: "## Cele główne" and "## Osiągnięcia"
-    2. Auto-detect: numbered items (1. 2. 3.) = goals, dash items (-) = achievements
+    1. Explicit headers: "## Cele główne" and "## Cele poboczne"
+    2. Auto-detect: numbered items (1. 2. 3.) = goals, dash items (-) = side goals
 
     Args:
         description: Sprint description text from Jira
 
     Returns:
-        Dict with 'goals' and 'achievements' lists
+        Dict with 'goals' and 'sideGoals' lists
     """
     result = {
         'goals': [],
-        'achievements': []
+        'sideGoals': []
     }
 
     if not description:
@@ -82,13 +86,13 @@ def parse_sprint_description(description: str) -> Dict:
     has_explicit_headers = False
     for line in lines:
         lower_line = line.lower().strip()
-        if any(keyword in lower_line for keyword in ['cele główne', 'cele sprintu', 'sprint goals', 'osiągnięcia', 'achievements']):
+        if any(keyword in lower_line for keyword in ['cele główne', 'cele sprintu', 'sprint goals', 'cele poboczne', 'side goals']):
             has_explicit_headers = True
             break
 
     current_section = None
     goal_counter = 0
-    achievement_counter = 0
+    side_goal_counter = 0
 
     for line in lines:
         line = line.strip()
@@ -102,8 +106,8 @@ def parse_sprint_description(description: str) -> Dict:
         if 'cele główne' in lower_line or 'cele sprintu' in lower_line or 'sprint goals' in lower_line:
             current_section = 'goals'
             continue
-        elif 'osiągnięcia' in lower_line or 'achievements' in lower_line or 'dodatk' in lower_line:
-            current_section = 'achievements'
+        elif 'cele poboczne' in lower_line or 'side goals' in lower_line or 'poboczn' in lower_line:
+            current_section = 'sideGoals'
             continue
         elif _is_section_header(line):
             # Other section header, reset
@@ -123,11 +127,11 @@ def parse_sprint_description(description: str) -> Dict:
             # Use explicit section from headers
             target_section = current_section
         else:
-            # Auto-detect: numbered = goals, dash = achievements
+            # Auto-detect: numbered = goals, dash = side goals
             if is_numbered:
                 target_section = 'goals'
             elif is_dash:
-                target_section = 'achievements'
+                target_section = 'sideGoals'
             else:
                 target_section = None
 
@@ -149,13 +153,13 @@ def parse_sprint_description(description: str) -> Dict:
                 'client': client,
                 'tag': f'cel{goal_counter}'
             })
-        elif target_section == 'achievements':
-            achievement_counter += 1
-            result['achievements'].append({
-                'id': achievement_counter,
+        elif target_section == 'sideGoals':
+            side_goal_counter += 1
+            result['sideGoals'].append({
+                'id': side_goal_counter,
                 'title': title,
                 'client': client,
-                'completed': False
+                'tag': f'extra{side_goal_counter}'
             })
 
     return result
@@ -223,6 +227,32 @@ def map_task_to_goal(task_labels: List[str], goals: List[Dict]) -> Optional[str]
     return None
 
 
+def map_task_to_side_goal(task_labels: List[str], side_goals: List[Dict]) -> Optional[str]:
+    """
+    Map a task to a side goal based on labels (extra1, extra2, etc.).
+
+    Args:
+        task_labels: List of task labels
+        side_goals: List of side goal dictionaries with 'tag' field
+
+    Returns:
+        Side goal tag or None if no match
+    """
+    side_goal_tags = {sg['tag'].lower() for sg in side_goals}
+
+    for label in task_labels:
+        label_lower = label.lower()
+        if label_lower in side_goal_tags:
+            return label_lower
+        # Also check for variations like "extra-1" or "extra_1"
+        normalized = re.sub(r'[-_\s]', '', label_lower)
+        for tag in side_goal_tags:
+            if normalized == re.sub(r'[-_\s]', '', tag):
+                return tag
+
+    return None
+
+
 def calculate_goal_progress(goal_tasks: List[Dict]) -> int:
     """
     Calculate goal completion percentage based on tasks.
@@ -249,14 +279,14 @@ if __name__ == '__main__':
 2. [Klient B] Naprawa błędów krytycznych
 3. Optymalizacja wydajności
 
-## Osiągnięcia dodatkowe
+## Cele poboczne
 - [Klient A] Aktualizacja dokumentacji
 - Przegląd kodu
 """
 
     result_1 = parse_sprint_description(test_description_1)
     print("Goals:", result_1['goals'])
-    print("Achievements:", result_1['achievements'])
+    print("Side Goals:", result_1['sideGoals'])
 
     # Test 2: Auto-detect format (no headers)
     print("\n=== Test 2: Auto-detect format (no headers) ===")
@@ -276,4 +306,4 @@ if __name__ == '__main__':
 
     result_2 = parse_sprint_description(test_description_2)
     print("Goals:", result_2['goals'])
-    print("Achievements:", result_2['achievements'])
+    print("Side Goals:", result_2['sideGoals'])
