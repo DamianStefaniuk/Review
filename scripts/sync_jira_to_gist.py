@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.jira_parser import (
     parse_sprint_description,
     map_task_to_goal,
+    map_task_to_side_goal,
     calculate_goal_progress
 )
 from utils.status_mapper import map_jira_status
@@ -289,13 +290,36 @@ def build_sprint_data(
             'comments': existing_comments
         })
 
-    achievements = []
-    for ach_data in parsed['achievements']:
-        achievements.append({
-            'id': ach_data['id'],
-            'title': ach_data['title'],
-            'client': ach_data['client'],
-            'completed': ach_data.get('completed', False)
+    # Build side goals list (with task mapping and progress)
+    side_goals = []
+    for sg_data in parsed['sideGoals']:
+        sg_tasks = []
+        for task in tasks:
+            task_tag = map_task_to_side_goal(task['labels'], [sg_data])
+            if task_tag == sg_data['tag']:
+                sg_tasks.append(task['key'])
+
+        progress = calculate_goal_progress([t for t in tasks if t['key'] in sg_tasks])
+
+        # Preserve existing comments if available
+        existing_comments = []
+        if existing_data:
+            existing_sg = next(
+                (sg for sg in existing_data.get('sideGoals', []) if sg['id'] == sg_data['id']),
+                None
+            )
+            if existing_sg:
+                existing_comments = existing_sg.get('comments', [])
+
+        side_goals.append({
+            'id': sg_data['id'],
+            'title': sg_data['title'],
+            'client': sg_data['client'],
+            'tag': sg_data['tag'],
+            'completed': progress == 100,
+            'completionPercent': progress,
+            'tasks': sg_tasks,
+            'comments': existing_comments
         })
 
     status = 'active'
@@ -314,8 +338,9 @@ def build_sprint_data(
     board_id = os.getenv('JIRA_BOARD_ID', '')
     timeline_url = f"{jira_url}/jira/software/projects/{os.getenv('JIRA_PROJECT_KEY')}/boards/{board_id}/timeline"
 
-    # Preserve existing nextSprintPlans (editable from web UI)
+    # Preserve existing editable fields (from web UI)
     existing_next_plans = existing_data.get('nextSprintPlans', '') if existing_data else ''
+    existing_achievements = existing_data.get('achievements', '') if existing_data else ''
 
     return {
         'id': sprint['id'],
@@ -324,7 +349,8 @@ def build_sprint_data(
         'startDate': start_date,
         'endDate': end_date,
         'goals': goals,
-        'achievements': achievements,
+        'sideGoals': side_goals,
+        'achievements': existing_achievements,  # Editable Markdown text from UI
         'tasks': tasks,
         'nextSprintPlans': existing_next_plans,
         'jiraTimelineUrl': timeline_url,
