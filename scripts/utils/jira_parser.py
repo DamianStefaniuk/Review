@@ -58,7 +58,11 @@ def _is_section_header(line: str) -> bool:
     return line.startswith('##') or line.startswith('**')
 
 
-def parse_sprint_description(description: str) -> Dict:
+def parse_sprint_description(
+    description: str,
+    goal_prefix: str = 'cel',
+    side_goal_prefix: str = 'extra'
+) -> Dict:
     """
     Parse sprint description to extract goals and side goals.
 
@@ -68,6 +72,8 @@ def parse_sprint_description(description: str) -> Dict:
 
     Args:
         description: Sprint description text from Jira
+        goal_prefix: Prefix for goal labels (default: 'cel')
+        side_goal_prefix: Prefix for side goal labels (default: 'extra')
 
     Returns:
         Dict with 'goals' and 'sideGoals' lists
@@ -151,7 +157,7 @@ def parse_sprint_description(description: str) -> Dict:
                 'id': goal_counter,
                 'title': title,
                 'client': client,
-                'tag': f'cel{goal_counter}'
+                'tag': f'{goal_prefix}{goal_counter}'
             })
         elif target_section == 'sideGoals':
             side_goal_counter += 1
@@ -159,7 +165,7 @@ def parse_sprint_description(description: str) -> Dict:
                 'id': side_goal_counter,
                 'title': title,
                 'client': client,
-                'tag': f'extra{side_goal_counter}'
+                'tag': f'{side_goal_prefix}{side_goal_counter}'
             })
 
     return result

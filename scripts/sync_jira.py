@@ -169,15 +169,26 @@ def transform_issue(issue: Dict, epic_cache: Dict[str, str], jira_client: JiraCl
     }
 
 
+def load_config(data_dir: Path) -> Dict:
+    """Load configuration from config.json."""
+    config_path = data_dir / 'config.json'
+    if config_path.exists():
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+
 def build_sprint_data(
     sprint: Dict,
     tasks: List[Dict],
-    existing_data: Optional[Dict] = None
+    existing_data: Optional[Dict] = None,
+    goal_prefix: str = 'cel',
+    side_goal_prefix: str = 'extra'
 ) -> Dict:
     """Build sprint data structure from Jira data."""
     # Parse sprint description/goal
     description = sprint.get('goal', '') or ''
-    parsed = parse_sprint_description(description)
+    parsed = parse_sprint_description(description, goal_prefix, side_goal_prefix)
 
     # Map tasks to goals
     goals = []
@@ -386,8 +397,15 @@ def main():
     # Load existing sprint data to preserve comments
     existing_data = load_existing_sprint(sprint_id, data_dir)
 
+    # Load config and get label prefixes
+    config = load_config(data_dir)
+    labels_config = config.get('labels', {})
+    goal_prefix = labels_config.get('goalPrefix', 'cel')
+    side_goal_prefix = labels_config.get('sideGoalPrefix', 'extra')
+    logger.info(f"Using label prefixes: goals='{goal_prefix}', side goals='{side_goal_prefix}'")
+
     # Build sprint data
-    sprint_data = build_sprint_data(sprint, tasks, existing_data)
+    sprint_data = build_sprint_data(sprint, tasks, existing_data, goal_prefix, side_goal_prefix)
 
     # Save sprint data
     save_sprint_data(sprint_data, data_dir)

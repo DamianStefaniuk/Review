@@ -7,11 +7,12 @@
   },
   "dataRepo": {
     "owner": "plumspzoo",
-    "repo": "Review-Data",
+    "repo": "Review-Data-Vent",
     "dataPath": "sprints"
   },
   "labels": {
     "goalPrefix": "cel",
+    "sideGoalPrefix": "extra",
     "clientPattern": "\\[([^\\]]+)\\]"
   }
 }

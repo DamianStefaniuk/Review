@@ -165,6 +165,11 @@ Zaktualizuj plik `data/config.json` z danymi GitHub:
     "branch": "main",
     "organization": "twoja-organizacja"
   },
+  "dataRepo": {
+    "owner": "twoja-organizacja",
+    "repo": "nazwa-repozytorium-danych",
+    "dataPath": "sprints"
+  },
   "labels": {
     "goalPrefix": "cel",
     "clientPattern": "\\[([^\\]]+)\\]"
@@ -175,9 +180,14 @@ Zaktualizuj plik `data/config.json` z danymi GitHub:
 | Pole | Opis |
 |------|------|
 | `github.owner` | Nazwa użytkownika/organizacji na GitHub |
-| `github.repo` | Nazwa repozytorium |
+| `github.repo` | Nazwa repozytorium aplikacji |
 | `github.branch` | Branch główny (zazwyczaj `main`) |
 | `github.organization` | Nazwa organizacji do weryfikacji członkostwa |
+| `dataRepo.owner` | Właściciel repozytorium danych (musi być taki sam jak w `DATA_REPO_OWNER`) |
+| `dataRepo.repo` | Nazwa repozytorium danych (musi być taka sama jak w `DATA_REPO_NAME`) |
+| `dataRepo.dataPath` | Ścieżka do folderu ze sprintami (domyślnie `sprints`) |
+
+**WAŻNE:** Wartości `dataRepo.owner` i `dataRepo.repo` muszą być zgodne z secrets `DATA_REPO_OWNER` i `DATA_REPO_NAME` skonfigurowanymi w GitHub Actions. W przeciwnym razie synchronizacja Jira zapisze dane do innego repozytorium niż to, z którego aplikacja je odczytuje.
 
 **Uwaga:** Pole `organization` kontroluje kto może się zalogować. Tylko członkowie tej organizacji uzyskają dostęp.
 
