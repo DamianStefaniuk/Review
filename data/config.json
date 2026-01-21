@@ -5,6 +5,11 @@
     "branch": "main",
     "organization": "plumspzoo"
   },
+  "dataRepo": {
+    "owner": "plumspzoo",
+    "repo": "Review-Data",
+    "dataPath": "sprints"
+  },
   "labels": {
     "goalPrefix": "cel",
     "clientPattern": "\\[([^\\]]+)\\]"

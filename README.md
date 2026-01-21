@@ -34,7 +34,7 @@ Aplikacja webowa do prezentacji i archiwizacji review sprintów zespołu. Integr
 - **Tryb prezentacji** - pelnoekranowy tryb do przeprowadzania review
 - **Eksport do PDF** - generowanie PDF z aktualnego review
 - **Autoryzacja GitHub PAT** - logowanie przez Personal Access Token z kontrola czlonkostwa w organizacji
-- **Przechowywanie danych w GitHub Gist** - komentarze i dane sprintow przechowywane w Gist (bez commitow do repozytorium)
+- **Przechowywanie danych w prywatnym repozytorium** - komentarze i dane sprintow przechowywane w repozytorium Review-Data
 - **Synchronizacja z Jira na zadanie** - przycisk wyzwalajacy GitHub Actions workflow
 - **Zamykanie sprintu** - mozliwosc zamkniecia sprintu i utworzenia nowego z poziomu UI
 
@@ -145,8 +145,9 @@ Aplikacja webowa do prezentacji i archiwizacji review sprintów zespołu. Integr
 | `JIRA_API_TOKEN` | `twój-token-api` |
 | `JIRA_PROJECT_KEY` | `PROJ` |
 | `JIRA_BOARD_ID` | `123` |
-| `GIST_ID` | ID Gista do przechowywania danych sprintów |
-| `GIST_TOKEN` | Personal Access Token z uprawnieniem `gist` |
+| `DATA_REPO_OWNER` | Wlasciciel repozytorium danych (np. `plumspzoo`) |
+| `DATA_REPO_NAME` | Nazwa repozytorium danych (np. `Review-Data`) |
+| `DATA_REPO_TOKEN` | Personal Access Token z uprawnieniem `repo` |
 
 **Uwaga:** Secrets są automatycznie maskowane w logach workflow.
 
@@ -422,7 +423,7 @@ Zadania bez etykiet `cel*` lub `extra*` pojawia sie w sekcji "Wszystkie zadania"
 
 ### Osiagniecia dodatkowe
 
-Osiagniecia dodatkowe sa **edytowalne bezposrednio z aplikacji webowej**. Obsluguja format Markdown i sa zapisywane do GitHub Gist. Mozna dodawac dowolne informacje o osiagniecach, ktore nie sa sledzone przez zadania w Jira.
+Osiagniecia dodatkowe sa **edytowalne bezposrednio z aplikacji webowej**. Obsluguja format Markdown i sa zapisywane do repozytorium Review-Data. Mozna dodawac dowolne informacje o osiagniecach, ktore nie sa sledzone przez zadania w Jira.
 
 **Uwaga:** Plany na nastepny sprint rowniez sa edytowalne bezposrednio z aplikacji webowej (zakladka "Nastepny sprint") i NIE sa pobierane z opisu sprintu w Jira.
 
@@ -446,13 +447,13 @@ Osiagniecia dodatkowe sa **edytowalne bezposrednio z aplikacji webowej**. Obslug
 ### Dodawanie komentarzy:
 
 1. Zaloguj się przez GitHub (wymagane)
-2. Upewnij się, że Gist jest skonfigurowany (secrets w repozytorium)
+2. Upewnij się, że masz dostęp do repozytorium Review-Data
 3. Kliknij na cel w przeglądzie
 4. Przewiń do sekcji "Komentarze"
 5. Wpisz treść komentarza
 6. Kliknij "Dodaj komentarz"
 
-Komentarze są automatycznie zapisywane do GitHub Gist (nie są tworzone commity w repozytorium).
+Komentarze są automatycznie zapisywane do repozytorium Review-Data.
 
 ### Synchronizacja z Jira:
 
@@ -464,7 +465,7 @@ Komentarze są automatycznie zapisywane do GitHub Gist (nie są tworzone commity
 ### Zamykanie sprintu:
 
 1. Zaloguj się przez GitHub (wymagane)
-2. Upewnij się, że Gist jest skonfigurowany (secrets w repozytorium)
+2. Upewnij się, że masz dostęp do repozytorium Review-Data
 3. Przejdź do aktywnego sprintu
 4. Kliknij przycisk **"Zamknij sprint"**
 5. Opcjonalnie zaznacz "Utwórz nowy sprint"
@@ -518,16 +519,16 @@ sprint-review/
 │   │   ├── UserMenu.vue       # Menu użytkownika
 │   │   ├── JiraSyncButton.vue # Przycisk synchronizacji z Jira
 │   │   ├── CloseSprintButton.vue # Przycisk zamykania sprintu
-│   │   ├── GistTokenConfig.vue # Status konfiguracji Gist
+│   │   ├── DataRepoStatus.vue # Status polaczenia z repozytorium danych
 │   │   └── ...                # Pozostałe komponenty
 │   ├── views/                 # Widoki stron
 │   ├── services/              # Serwisy (API)
 │   │   ├── authService.js     # GitHub PAT authentication
 │   │   ├── githubApi.js       # Walidacja tokenów GitHub
-│   │   ├── gistService.js     # Operacje na GitHub Gist
+│   │   ├── repoDataService.js # Operacje na repozytorium danych
 │   │   ├── sprintManagementService.js # Zarządzanie sprintami
 │   │   ├── githubActionsService.js # Wyzwalanie GitHub Actions
-│   │   └── dataLoader.js      # Ładowanie danych (Gist + fallback)
+│   │   └── dataLoader.js      # Ładowanie danych (Repository + fallback)
 │   └── assets/                # Style CSS
 │
 └── public/                    # Pliki statyczne
@@ -536,55 +537,112 @@ sprint-review/
 
 ---
 
-## Przechowywanie danych (GitHub Gist)
+## Przechowywanie danych (prywatne repozytorium Review-Data)
 
-Aplikacja przechowuje dane sprintów i komentarze w GitHub Gist zamiast commitowania bezpośrednio do repozytorium. Dzięki temu:
-- Komentarze są zapisywane natychmiastowo bez tworzenia commitów
-- Dane są dostępne z dowolnego miejsca
-- Historia zmian jest zarządzana przez Gist
+Aplikacja przechowuje dane sprintów i komentarze w prywatnym repozytorium GitHub (`plumspzoo/Review-Data`). Dzięki temu:
+- **Bezpieczeństwo** - dane są dostępne tylko dla członków organizacji
+- **Kontrola dostępu** - wykorzystanie tokena PAT użytkownika (nie globalnego tokena w kodzie)
+- **Historia zmian** - pełna historia wersji przez Git
 
-### Struktura plików w Gist
+### Dwa rodzaje tokenów
+
+Aplikacja wykorzystuje **dwa różne tokeny** do różnych celów:
+
+| Token | Gdzie używany | Kto tworzy | Cel |
+|-------|---------------|------------|-----|
+| **Token użytkownika (logowanie)** | Frontend (przeglądarka) | Każdy użytkownik | Odczyt/zapis danych przez UI |
+| **DATA_REPO_TOKEN (secret)** | GitHub Actions | Administrator | Automatyczna synchronizacja Jira |
+
+**Dlaczego dwa tokeny?**
+- **Token użytkownika** - każdy członek organizacji loguje się własnym PAT. Dzięki temu wiadomo kto dokonał zmian, a token nigdy nie jest widoczny w kodzie źródłowym.
+- **DATA_REPO_TOKEN** - workflow GitHub Actions działa bez kontekstu zalogowanego użytkownika, więc potrzebuje własnego tokena do zapisu danych z Jira.
+
+### Struktura plików w repozytorium Review-Data
 
 ```
-Gist/
-├── current-sprint.json     # Wskaźnik na aktywny sprint
-├── sprint-41.json          # Dane sprintu 41
-├── sprint-42.json          # Dane sprintu 42
-└── ...                     # Kolejne sprinty
+Review-Data/
+├── current-sprint.json     # W KATALOGU GŁÓWNYM (root) - wskaźnik na aktywny sprint
+└── sprints/                # Podkatalog na pliki sprintów
+    ├── sprint-8663.json    # Dane sprintu 8663
+    ├── sprint-8664.json    # Dane sprintu 8664
+    └── ...                 # Kolejne sprinty
 ```
 
-### Jak utworzyć Gist
+**Ważne:**
+- `current-sprint.json` musi być w **katalogu głównym** (root), NIE w `sprints/`
+- Pliki sprintów (`sprint-XXXX.json`) muszą być w podkatalogu `sprints/`
+- Nazwa pliku to `current-sprint.json` (z myślnikiem `-`, nie podkreśleniem `_`)
 
-1. Przejdź do [gist.github.com](https://gist.github.com)
-2. Utwórz nowy Gist prywatny
-3. Dodaj plik `current-sprint.json` z zawartością:
+### Krok 1: Utworzenie repozytorium Review-Data
+
+1. Zaloguj się do GitHub jako członek organizacji `plumspzoo`
+2. Utwórz nowe **prywatne** repozytorium o nazwie `Review-Data` w organizacji
+3. Utwórz plik `current-sprint.json` **w katalogu głównym** (root):
    ```json
    {
-     "currentSprintId": 42,
+     "currentSprintId": 8663,
      "isActive": true
    }
    ```
-4. Skopiuj ID Gista z URL (ciąg znaków po nazwie użytkownika)
-5. Utwórz Personal Access Token z uprawnieniem `gist`
+   Zamień `8663` na ID aktualnego sprintu w Jira.
 
-### Konfiguracja Gist
+4. Utwórz katalog `sprints/` (może być pusty - sync z Jira utworzy pliki sprintów)
 
-Konfiguracja Gist odbywa się **wyłącznie przez repository secrets** - nie ma możliwości konfiguracji z poziomu UI aplikacji.
+**Opcjonalnie** możesz od razu utworzyć plik sprintu `sprints/sprint-8663.json`:
+```json
+{
+  "id": 8663,
+  "name": "Sprint 8663",
+  "status": "active",
+  "goals": [],
+  "sideGoals": [],
+  "tasks": [],
+  "achievements": "",
+  "nextSprintPlans": ""
+}
+```
+Jednak nie jest to konieczne - synchronizacja z Jira automatycznie utworzy i wypełni ten plik.
 
-1. Dodaj secrets w repozytorium (**Settings** → **Secrets and variables** → **Actions**):
-   - `GIST_ID` - ID Twojego Gista
-   - `GIST_TOKEN` - Personal Access Token z uprawnieniem `gist`
+### Krok 2: Konfiguracja DATA_REPO_TOKEN (dla GitHub Actions)
 
-2. Workflow `deploy.yml` automatycznie przekazuje te wartości jako zmienne środowiskowe podczas budowania:
-   ```yaml
-   env:
-     VITE_GIST_ID: ${{ secrets.GIST_ID }}
-     VITE_GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
-   ```
+Ten token jest potrzebny **tylko dla automatycznej synchronizacji Jira**. Można go utworzyć raz i dodać do secrets.
 
-3. Po wdrożeniu aplikacji, dane będą automatycznie pobierane z Gist (tylko dla zalogowanych użytkowników).
+1. Zaloguj się na GitHub jako członek organizacji z uprawnieniami write do Review-Data
+2. Przejdź do [github.com/settings/tokens/new](https://github.com/settings/tokens/new)
+3. Utwórz token z uprawnieniem **`repo`** (pełny dostęp do prywatnych repozytoriów)
+4. W repozytorium **Review** dodaj secrets (**Settings** → **Secrets and variables** → **Actions**):
+   - `DATA_REPO_OWNER` = `plumspzoo`
+   - `DATA_REPO_NAME` = `Review-Data`
+   - `DATA_REPO_TOKEN` = skopiowany token
 
-**Uwaga:** Tokeny i ID Gista NIE są przechowywane w kodzie źródłowym ani w localStorage - są wbudowane w aplikację podczas procesu budowania.
+**Uwaga:** Token jest tworzony przez użytkownika indywidualnego (nie organizację). GitHub PAT zawsze należy do konkretnego konta użytkownika. Można też utworzyć dedykowane konto "bot" w organizacji dla tego celu.
+
+### Krok 3: Token użytkownika (dla logowania w UI)
+
+Każdy użytkownik aplikacji musi utworzyć własny PAT do logowania:
+
+1. Przejdź do [github.com/settings/tokens/new](https://github.com/settings/tokens/new)
+2. Utwórz token z uprawnieniami:
+   - **`repo`** - dostęp do Review-Data
+   - **`read:org`** - weryfikacja członkostwa w organizacji
+   - **`workflow`** - uruchamianie synchronizacji Jira (opcjonalne)
+3. Użyj tego tokena do zalogowania się w aplikacji
+
+### Podsumowanie wymaganych uprawnień
+
+**Dla użytkowników (logowanie w UI):**
+
+| Scope | Cel | Wymagane? |
+|-------|-----|-----------|
+| `repo` | Odczyt/zapis danych w Review-Data | Tak |
+| `read:org` | Sprawdzenie członkostwa w organizacji | Tak |
+| `workflow` | Uruchamianie synchronizacji Jira z UI | Opcjonalne |
+
+**Dla DATA_REPO_TOKEN (GitHub Actions):**
+
+| Scope | Cel | Wymagane? |
+|-------|-----|-----------|
+| `repo` | Zapis danych z Jira do Review-Data | Tak |
 
 ---
 
@@ -630,18 +688,18 @@ Konfiguracja Gist odbywa się **wyłącznie przez repository secrets** - nie ma 
 3. **"Nie udało się sprawdzić członkostwa"** - Upewnij się, że token ma uprawnienie `read:org`
 4. **Token wygasł** - Utwórz nowy token na GitHub i zaloguj się ponownie
 
-### Problemy z Gist:
+### Problemy z repozytorium danych:
 
-1. **"Gist nie jest skonfigurowany"** - Dodaj secrets `GIST_ID` i `GIST_TOKEN` w repozytorium i przebuduj aplikację
-2. **Komentarze nie zapisują się** - Upewnij się, że token ma uprawnienie `gist`
-3. **Dane nie ładują się z Gist** - Sprawdź czy pliki w Gist mają poprawny format JSON
-4. **Dane widoczne tylko po zalogowaniu** - To prawidłowe zachowanie - dane z Gist są dostępne tylko dla zalogowanych użytkowników
+1. **"Nie jesteś zalogowany"** - Zaloguj się używając Personal Access Token z uprawnieniem `repo`
+2. **Komentarze nie zapisują się** - Upewnij się, że token ma uprawnienie `repo` i masz dostęp do repozytorium Review-Data
+3. **Dane nie ładują się** - Sprawdź czy pliki w repozytorium mają poprawny format JSON
+4. **Dane widoczne tylko po zalogowaniu** - To prawidłowe zachowanie - dane są dostępne tylko dla zalogowanych członków organizacji
 
 ### Problemy z synchronizacją Jira:
 
 1. **Workflow nie uruchamia się** - Sprawdź czy masz uprawnienia do uruchamiania workflow w repozytorium
 2. **Błąd synchronizacji** - Sprawdź logi w zakładce Actions na GitHub
-3. **Dane nie aktualizują się** - Upewnij się, że secrets `GIST_ID` i `GIST_TOKEN` są ustawione w repozytorium
+3. **Dane nie aktualizują się** - Upewnij się, że secrets `DATA_REPO_OWNER`, `DATA_REPO_NAME` i `DATA_REPO_TOKEN` są ustawione w repozytorium
 
 ---
 

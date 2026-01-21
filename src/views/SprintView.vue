@@ -2,7 +2,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadSprint, loadCurrentSprintInfo } from '../services/dataLoader'
-import { addCommentToGist, isGistConfigured } from '../services/gistService'
+import { addCommentToRepo, isRepoDataConfigured } from '../services/repoDataService'
 import { useAuthStore } from '../stores/authStore'
 import SprintOverview from '../components/SprintOverview.vue'
 import GoalDetail from '../components/GoalDetail.vue'
@@ -14,7 +14,7 @@ import ClientStats from '../components/ClientStats.vue'
 import PdfExport from '../components/PdfExport.vue'
 import JiraSyncButton from '../components/JiraSyncButton.vue'
 import CloseSprintButton from '../components/CloseSprintButton.vue'
-import GistTokenConfig from '../components/GistTokenConfig.vue'
+import DataRepoStatus from '../components/DataRepoStatus.vue'
 
 const authStore = useAuthStore()
 
@@ -80,12 +80,12 @@ const handleAddComment = async ({ goalId, comment, isSideGoal }) => {
   // Add comment locally
   goal.comments.push(newComment)
 
-  // Try to save to Gist if configured
-  if (isGistConfigured()) {
+  // Try to save to Repository if configured
+  if (isRepoDataConfigured()) {
     try {
-      await addCommentToGist(sprint.value.id, goalId, newComment, isSideGoal)
+      await addCommentToRepo(sprint.value.id, goalId, newComment, isSideGoal)
     } catch (err) {
-      console.error('Failed to save comment to Gist:', err)
+      console.error('Failed to save comment to Repository:', err)
       // Comment is still added locally
     }
   }
@@ -165,7 +165,7 @@ onMounted(() => {
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-800">
           <p class="font-medium mb-1">Co możesz zrobić:</p>
           <ol class="list-decimal list-inside space-y-1 text-blue-700">
-            <li>Skonfiguruj połączenie z Gist (jeśli jeszcze nie skonfigurowane)</li>
+            <li>Zaloguj się (jeśli jeszcze nie jesteś zalogowany)</li>
             <li>Uruchom synchronizację z Jira, aby pobrać dane</li>
             <li>Poczekaj na zakończenie synchronizacji i odśwież stronę</li>
           </ol>
@@ -173,20 +173,20 @@ onMounted(() => {
 
         <!-- Action buttons -->
         <div class="space-y-3">
-          <!-- Gist config -->
+          <!-- Status repozytorium -->
           <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div>
-              <p class="font-medium text-gray-900">1. Konfiguracja Gist</p>
-              <p class="text-sm text-gray-500">Połącz aplikację z GitHub Gist</p>
+              <p class="font-medium text-gray-900">1. Status połączenia</p>
+              <p class="text-sm text-gray-500">Sprawdź status połączenia z repozytorium danych</p>
             </div>
-            <GistTokenConfig v-if="authStore.isAuthenticated" />
+            <DataRepoStatus v-if="authStore.isAuthenticated" />
           </div>
 
           <!-- Jira sync -->
           <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div>
               <p class="font-medium text-gray-900">2. Synchronizacja Jira</p>
-              <p class="text-sm text-gray-500">Pobierz dane z Jira do Gist</p>
+              <p class="text-sm text-gray-500">Pobierz dane z Jira do repozytorium</p>
             </div>
             <JiraSyncButton
               v-if="authStore.isAuthenticated"
@@ -219,7 +219,7 @@ onMounted(() => {
 
         <div class="flex items-center gap-3">
           <!-- Gist config (only for authenticated users) -->
-          <GistTokenConfig v-if="authStore.isAuthenticated" />
+          <DataRepoStatus v-if="authStore.isAuthenticated" />
 
           <!-- Jira sync button (only for authenticated users) -->
           <JiraSyncButton

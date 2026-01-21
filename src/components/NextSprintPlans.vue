@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { marked } from 'marked'
 import { useAuthStore } from '../stores/authStore'
-import { isGistConfigured, saveSprintToGist, loadSprintFromGist } from '../services/gistService'
+import { isRepoDataConfigured, saveSprintToRepo, loadSprintFromRepo } from '../services/repoDataService'
 
 const props = defineProps({
   content: {
@@ -27,7 +27,7 @@ const editContent = ref('')
 const saving = ref(false)
 const saveError = ref(null)
 
-const canEdit = computed(() => authStore.isAuthenticated && isGistConfigured())
+const canEdit = computed(() => authStore.isAuthenticated && isRepoDataConfigured())
 
 const renderedContent = computed(() => {
   if (!props.content) return ''
@@ -55,14 +55,14 @@ const saveChanges = async () => {
   saveError.value = null
 
   try {
-    // Load current sprint data from Gist
-    const sprintData = await loadSprintFromGist(props.sprintId)
+    // Load current sprint data from Repository
+    const sprintData = await loadSprintFromRepo(props.sprintId)
 
     // Update nextSprintPlans
     sprintData.nextSprintPlans = editContent.value
 
-    // Save back to Gist
-    await saveSprintToGist(sprintData)
+    // Save back to Repository
+    await saveSprintToRepo(sprintData)
 
     // Emit update event to parent
     emit('update', editContent.value)

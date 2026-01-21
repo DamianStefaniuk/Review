@@ -1,4 +1,4 @@
-name: Sync Jira to Gist (On Demand)
+name: Sync Jira to Repository (On Demand)
 
 on:
   workflow_dispatch:
@@ -23,21 +23,22 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r scripts/requirements.txt
 
-      - name: Sync Jira data to Gist
+      - name: Sync Jira data to Repository
         env:
           JIRA_URL: ${{ secrets.JIRA_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
           JIRA_BOARD_ID: ${{ secrets.JIRA_BOARD_ID }}
-          GIST_ID: ${{ secrets.GIST_ID }}
-          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER }}
+          DATA_REPO_NAME: ${{ secrets.DATA_REPO_NAME }}
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
         run: |
           if [ -n "${{ inputs.sprint_id }}" ]; then
-            python scripts/sync_jira_to_gist.py --sprint-id ${{ inputs.sprint_id }}
+            python scripts/sync_jira_to_repo.py --sprint-id ${{ inputs.sprint_id }}
           else
-            python scripts/sync_jira_to_gist.py
+            python scripts/sync_jira_to_repo.py
           fi
 
       - name: Sync completed
-        run: echo "Jira data synced to Gist successfully"
+        run: echo "Jira data synced to repository successfully"

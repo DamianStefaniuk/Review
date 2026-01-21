@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { closeSprint, closeSprintAndCreateNew } from '../services/sprintManagementService'
-import { isGistConfigured } from '../services/gistService'
+import { isRepoDataConfigured } from '../services/repoDataService'
 
 const props = defineProps({
   sprintId: {
@@ -27,8 +27,8 @@ const error = ref(null)
 const success = ref(false)
 
 const openModal = () => {
-  if (!isGistConfigured()) {
-    error.value = 'Gist nie jest skonfigurowany. Przejdź do ustawień i skonfiguruj Gist.'
+  if (!isRepoDataConfigured()) {
+    error.value = 'Nie jesteś zalogowany. Zaloguj się, aby zamknąć sprint.'
     return
   }
   error.value = null
@@ -141,7 +141,7 @@ const handleCloseSprint = async () => {
           <!-- Form -->
           <div v-else>
             <p class="text-gray-600 mb-4">
-              Czy na pewno chcesz zamknąć ten sprint? Ta operacja zaznaczy sprint jako zakończony w Gist.
+              Czy na pewno chcesz zamknąć ten sprint? Ta operacja zaznaczy sprint jako zakończony.
             </p>
 
             <!-- Option to create new sprint -->

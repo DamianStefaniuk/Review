@@ -4,29 +4,31 @@
  */
 
 import {
-  fetchGistFile,
-  updateGistFile,
-  createGistFile,
-  updateCurrentSprintInfoInGist,
-  loadSprintFromGist
-} from './gistService'
+  fetchRepoFile,
+  updateRepoFile,
+  createRepoFile,
+  updateCurrentSprintInfoInRepo,
+  loadSprintFromRepo
+} from './repoDataService'
 
 /**
  * Close a sprint (mark as closed)
  */
 export async function closeSprint(sprintId) {
   // Load current sprint data
-  const sprintData = await loadSprintFromGist(sprintId)
+  const sprintData = await loadSprintFromRepo(sprintId)
 
   // Update status
   sprintData.status = 'closed'
   sprintData.closedAt = new Date().toISOString()
 
-  // Save updated sprint data
-  await updateGistFile(`sprint-${sprintId}.json`, sprintData)
+  // Save updated sprint data (remove internal _sha before saving)
+  const sha = sprintData._sha
+  delete sprintData._sha
+  await updateRepoFile(`sprint-${sprintId}.json`, sprintData, sha)
 
   // Update current-sprint.json
-  await updateCurrentSprintInfoInGist(sprintId, false)
+  await updateCurrentSprintInfoInRepo(sprintId, false)
 
   return sprintData
 }
@@ -56,10 +58,10 @@ export async function createNewSprint(newSprintId, previousSprintData = null) {
   }
 
   // Create the new sprint file
-  await createGistFile(`sprint-${newSprintId}.json`, newSprintData)
+  await createRepoFile(`sprint-${newSprintId}.json`, newSprintData)
 
   // Update current-sprint.json
-  await updateCurrentSprintInfoInGist(newSprintId, true)
+  await updateCurrentSprintInfoInRepo(newSprintId, true)
 
   return newSprintData
 }
@@ -86,7 +88,7 @@ export async function closeSprintAndCreateNew(currentSprintId) {
  */
 export async function getSprintStatus(sprintId) {
   try {
-    const sprintData = await loadSprintFromGist(sprintId)
+    const sprintData = await loadSprintFromRepo(sprintId)
     return {
       exists: true,
       status: sprintData.status,

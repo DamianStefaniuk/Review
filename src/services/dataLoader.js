@@ -1,13 +1,13 @@
 /**
- * Service for loading sprint data from JSON files or Gist
+ * Service for loading sprint data from JSON files or Repository
  */
 
 import {
-  isGistConfigured,
-  loadSprintFromGist,
-  loadCurrentSprintInfoFromGist,
-  loadSprintListFromGist
-} from './gistService'
+  isRepoDataConfigured,
+  loadSprintFromRepo,
+  loadCurrentSprintInfoFromRepo,
+  loadSprintListFromRepo
+} from './repoDataService'
 
 const BASE_PATH = './data'
 
@@ -23,15 +23,15 @@ export async function loadConfig() {
 }
 
 /**
- * Load current sprint info (from Gist or local file)
+ * Load current sprint info (from Repository or local file)
  */
 export async function loadCurrentSprintInfo() {
-  // Try Gist first if configured
-  if (isGistConfigured()) {
+  // Try Repository first if configured
+  if (isRepoDataConfigured()) {
     try {
-      return await loadCurrentSprintInfoFromGist()
+      return await loadCurrentSprintInfoFromRepo()
     } catch (error) {
-      console.warn('Failed to load from Gist, falling back to local:', error)
+      console.warn('Failed to load from Repository, falling back to local:', error)
     }
   }
 
@@ -44,15 +44,15 @@ export async function loadCurrentSprintInfo() {
 }
 
 /**
- * Load sprint data by ID (from Gist or local file)
+ * Load sprint data by ID (from Repository or local file)
  */
 export async function loadSprint(sprintId) {
-  // Try Gist first if configured
-  if (isGistConfigured()) {
+  // Try Repository first if configured
+  if (isRepoDataConfigured()) {
     try {
-      return await loadSprintFromGist(sprintId)
+      return await loadSprintFromRepo(sprintId)
     } catch (error) {
-      console.warn('Failed to load sprint from Gist, falling back to local:', error)
+      console.warn('Failed to load sprint from Repository, falling back to local:', error)
     }
   }
 
@@ -65,15 +65,15 @@ export async function loadSprint(sprintId) {
 }
 
 /**
- * Load all available sprints (list) - from Gist or local files
+ * Load all available sprints (list) - from Repository or local files
  */
 export async function loadSprintList() {
-  // Try Gist first if configured
-  if (isGistConfigured()) {
+  // Try Repository first if configured
+  if (isRepoDataConfigured()) {
     try {
-      return await loadSprintListFromGist()
+      return await loadSprintListFromRepo()
     } catch (error) {
-      console.warn('Failed to load sprint list from Gist, falling back to local:', error)
+      console.warn('Failed to load sprint list from Repository, falling back to local:', error)
     }
   }
 
