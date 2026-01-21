@@ -305,7 +305,7 @@ onMounted(() => {
         <!-- Tasks tab -->
         <template v-if="activeTab === 'tasks'">
           <div class="lg:col-span-3">
-            <AllTasks :tasks="sprint.tasks" />
+            <AllTasks :tasks="sprint.tasks" :jira-base-url="sprint.jiraBaseUrl" />
           </div>
         </template>
 

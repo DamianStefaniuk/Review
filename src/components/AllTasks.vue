@@ -5,6 +5,10 @@ const props = defineProps({
   tasks: {
     type: Array,
     required: true
+  },
+  jiraBaseUrl: {
+    type: String,
+    default: ''
   }
 })
 
@@ -149,28 +153,34 @@ const statusIcons = {
           <li
             v-for="task in epicTasks"
             :key="task.key"
-            class="px-6 py-3 flex items-center gap-4 hover:bg-gray-50 transition-colors"
           >
-            <span
-              class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
-              :class="task.status === 'Done' ? 'bg-green-500 text-white' : task.status === 'In Progress' ? 'bg-blue-500 text-white' : 'border-2 border-gray-300'"
+            <a
+              :href="jiraBaseUrl ? jiraBaseUrl + '/browse/' + task.key : undefined"
+              :target="jiraBaseUrl ? '_blank' : undefined"
+              :rel="jiraBaseUrl ? 'noopener noreferrer' : undefined"
+              class="px-6 py-3 flex items-center gap-4 hover:bg-gray-50 transition-colors"
             >
-              <svg v-if="task.status === 'Done'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-              </svg>
-              <span v-else-if="task.status === 'In Progress'" class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-            </span>
-            <div class="flex-1 min-w-0">
-              <span class="text-xs font-mono text-gray-400">{{ task.key }}</span>
-              <p class="text-sm text-gray-900">{{ task.summary }}</p>
-            </div>
-            <span v-if="task.assignee" class="text-xs text-gray-500">{{ task.assignee }}</span>
-            <span
-              class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
-              :class="statusColors[task.status]"
-            >
-              {{ task.status }}
-            </span>
+              <span
+                class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                :class="task.status === 'Done' ? 'bg-green-500 text-white' : task.status === 'In Progress' ? 'bg-blue-500 text-white' : 'border-2 border-gray-300'"
+              >
+                <svg v-if="task.status === 'Done'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span v-else-if="task.status === 'In Progress'" class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+              </span>
+              <div class="flex-1 min-w-0">
+                <span class="text-xs font-mono text-gray-400">{{ task.key }}</span>
+                <p class="text-sm text-gray-900">{{ task.summary }}</p>
+              </div>
+              <span v-if="task.assignee" class="text-xs text-gray-500">{{ task.assignee }}</span>
+              <span
+                class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
+                :class="statusColors[task.status]"
+              >
+                {{ task.status }}
+              </span>
+            </a>
           </li>
         </ul>
       </div>
@@ -181,31 +191,37 @@ const statusIcons = {
       <li
         v-for="task in sortedTasks"
         :key="task.key"
-        class="px-6 py-3 flex items-center gap-4 hover:bg-gray-50 transition-colors"
       >
-        <span
-          class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
-          :class="task.status === 'Done' ? 'bg-green-500 text-white' : task.status === 'In Progress' ? 'bg-blue-500 text-white' : 'border-2 border-gray-300'"
+        <a
+          :href="jiraBaseUrl ? jiraBaseUrl + '/browse/' + task.key : undefined"
+          :target="jiraBaseUrl ? '_blank' : undefined"
+          :rel="jiraBaseUrl ? 'noopener noreferrer' : undefined"
+          class="px-6 py-3 flex items-center gap-4 hover:bg-gray-50 transition-colors"
         >
-          <svg v-if="task.status === 'Done'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-          </svg>
-          <span v-else-if="task.status === 'In Progress'" class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-        </span>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-mono text-gray-400">{{ task.key }}</span>
-            <span v-if="task.epic" class="text-xs text-gray-400">{{ task.epic }}</span>
+          <span
+            class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+            :class="task.status === 'Done' ? 'bg-green-500 text-white' : task.status === 'In Progress' ? 'bg-blue-500 text-white' : 'border-2 border-gray-300'"
+          >
+            <svg v-if="task.status === 'Done'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+            </svg>
+            <span v-else-if="task.status === 'In Progress'" class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+          </span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono text-gray-400">{{ task.key }}</span>
+              <span v-if="task.epic" class="text-xs text-gray-400">{{ task.epic }}</span>
+            </div>
+            <p class="text-sm text-gray-900">{{ task.summary }}</p>
           </div>
-          <p class="text-sm text-gray-900">{{ task.summary }}</p>
-        </div>
-        <span v-if="task.assignee" class="text-xs text-gray-500">{{ task.assignee }}</span>
-        <span
-          class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
-          :class="statusColors[task.status]"
-        >
-          {{ task.status }}
-        </span>
+          <span v-if="task.assignee" class="text-xs text-gray-500">{{ task.assignee }}</span>
+          <span
+            class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
+            :class="statusColors[task.status]"
+          >
+            {{ task.status }}
+          </span>
+        </a>
       </li>
     </ul>
 

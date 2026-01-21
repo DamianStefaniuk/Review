@@ -117,10 +117,13 @@ const handleAddComment = (comment) => {
         <div v-if="tasksByStatus['Done'].length > 0">
           <h4 class="text-sm font-medium text-gray-500 mb-2">Ukończone</h4>
           <div class="space-y-2">
-            <div
+            <a
               v-for="task in tasksByStatus['Done']"
               :key="task.key"
-              class="flex items-center gap-3 p-3 bg-green-50 rounded-lg"
+              :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
+              :target="sprint.jiraBaseUrl ? '_blank' : undefined"
+              :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+              class="flex items-center gap-3 p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
             >
               <span class="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center">
                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -132,7 +135,7 @@ const handleAddComment = (comment) => {
                 <p class="text-sm text-gray-900">{{ task.summary }}</p>
               </div>
               <span v-if="task.assignee" class="text-xs text-gray-500">{{ task.assignee }}</span>
-            </div>
+            </a>
           </div>
         </div>
 
@@ -140,10 +143,13 @@ const handleAddComment = (comment) => {
         <div v-if="tasksByStatus['In Progress'].length > 0">
           <h4 class="text-sm font-medium text-gray-500 mb-2">W trakcie</h4>
           <div class="space-y-2">
-            <div
+            <a
               v-for="task in tasksByStatus['In Progress']"
               :key="task.key"
-              class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg"
+              :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
+              :target="sprint.jiraBaseUrl ? '_blank' : undefined"
+              :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+              class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
             >
               <span class="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
                 <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
@@ -153,7 +159,7 @@ const handleAddComment = (comment) => {
                 <p class="text-sm text-gray-900">{{ task.summary }}</p>
               </div>
               <span v-if="task.assignee" class="text-xs text-gray-500">{{ task.assignee }}</span>
-            </div>
+            </a>
           </div>
         </div>
 
@@ -161,10 +167,13 @@ const handleAddComment = (comment) => {
         <div v-if="tasksByStatus['To Do'].length > 0">
           <h4 class="text-sm font-medium text-gray-500 mb-2">Do zrobienia</h4>
           <div class="space-y-2">
-            <div
+            <a
               v-for="task in tasksByStatus['To Do']"
               :key="task.key"
-              class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+              :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
+              :target="sprint.jiraBaseUrl ? '_blank' : undefined"
+              :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+              class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <span class="flex-shrink-0 w-5 h-5 rounded-full border-2 border-gray-300"></span>
               <div class="flex-1 min-w-0">
@@ -172,7 +181,7 @@ const handleAddComment = (comment) => {
                 <p class="text-sm text-gray-900">{{ task.summary }}</p>
               </div>
               <span v-if="task.assignee" class="text-xs text-gray-500">{{ task.assignee }}</span>
-            </div>
+            </a>
           </div>
         </div>
       </div>

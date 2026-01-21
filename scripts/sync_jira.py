@@ -277,6 +277,7 @@ def build_sprint_data(
         'achievements': existing_achievements,  # Editable Markdown text from UI
         'tasks': tasks,
         'nextSprintPlans': existing_next_plans,
+        'jiraBaseUrl': jira_url,
         'jiraTimelineUrl': timeline_url,
         'closedAt': existing_data.get('closedAt') if existing_data else None
     }

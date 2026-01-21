@@ -141,10 +141,13 @@ const tasksByStatus = (sideGoal) => {
             <div v-if="tasksByStatus(sideGoal)['Done'].length > 0">
               <h5 class="text-xs font-medium text-gray-500 mb-2">Ukonczone</h5>
               <div class="space-y-1">
-                <div
+                <a
                   v-for="task in tasksByStatus(sideGoal)['Done']"
                   :key="task.key"
-                  class="flex items-center gap-2 p-2 bg-green-50 rounded text-sm"
+                  :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
+                  :target="sprint.jiraBaseUrl ? '_blank' : undefined"
+                  :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+                  class="flex items-center gap-2 p-2 bg-green-50 rounded text-sm hover:bg-green-100 transition-colors"
                 >
                   <span class="flex-shrink-0 w-4 h-4 rounded-full bg-green-500 text-white flex items-center justify-center">
                     <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
@@ -153,7 +156,7 @@ const tasksByStatus = (sideGoal) => {
                   </span>
                   <span class="text-xs font-mono text-gray-500">{{ task.key }}</span>
                   <span class="text-gray-900 truncate">{{ task.summary }}</span>
-                </div>
+                </a>
               </div>
             </div>
 
@@ -161,17 +164,20 @@ const tasksByStatus = (sideGoal) => {
             <div v-if="tasksByStatus(sideGoal)['In Progress'].length > 0">
               <h5 class="text-xs font-medium text-gray-500 mb-2">W trakcie</h5>
               <div class="space-y-1">
-                <div
+                <a
                   v-for="task in tasksByStatus(sideGoal)['In Progress']"
                   :key="task.key"
-                  class="flex items-center gap-2 p-2 bg-blue-50 rounded text-sm"
+                  :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
+                  :target="sprint.jiraBaseUrl ? '_blank' : undefined"
+                  :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+                  class="flex items-center gap-2 p-2 bg-blue-50 rounded text-sm hover:bg-blue-100 transition-colors"
                 >
                   <span class="flex-shrink-0 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
                     <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
                   </span>
                   <span class="text-xs font-mono text-gray-500">{{ task.key }}</span>
                   <span class="text-gray-900 truncate">{{ task.summary }}</span>
-                </div>
+                </a>
               </div>
             </div>
 
@@ -179,15 +185,18 @@ const tasksByStatus = (sideGoal) => {
             <div v-if="tasksByStatus(sideGoal)['To Do'].length > 0">
               <h5 class="text-xs font-medium text-gray-500 mb-2">Do zrobienia</h5>
               <div class="space-y-1">
-                <div
+                <a
                   v-for="task in tasksByStatus(sideGoal)['To Do']"
                   :key="task.key"
-                  class="flex items-center gap-2 p-2 bg-gray-100 rounded text-sm"
+                  :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
+                  :target="sprint.jiraBaseUrl ? '_blank' : undefined"
+                  :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+                  class="flex items-center gap-2 p-2 bg-gray-100 rounded text-sm hover:bg-gray-200 transition-colors"
                 >
                   <span class="flex-shrink-0 w-4 h-4 rounded-full border-2 border-gray-300"></span>
                   <span class="text-xs font-mono text-gray-500">{{ task.key }}</span>
                   <span class="text-gray-900 truncate">{{ task.summary }}</span>
-                </div>
+                </a>
               </div>
             </div>
 

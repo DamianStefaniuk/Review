@@ -22,8 +22,6 @@ const props = defineProps({
 const emit = defineEmits(['update'])
 
 const authStore = useAuthStore()
-const showIframe = ref(false)
-const iframeError = ref(false)
 const isEditing = ref(false)
 const editContent = ref('')
 const saving = ref(false)
@@ -78,9 +76,6 @@ const saveChanges = async () => {
   }
 }
 
-const handleIframeError = () => {
-  iframeError.value = true
-}
 </script>
 
 <template>
@@ -109,7 +104,7 @@ const handleIframeError = () => {
             rel="noopener noreferrer"
             class="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
           >
-            Otwórz w Jira
+            Timeline w Jira
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
@@ -189,45 +184,6 @@ const handleIframeError = () => {
           Dodaj plany
         </button>
       </p>
-    </div>
-
-    <!-- Jira Timeline iframe toggle -->
-    <div v-if="jiraTimelineUrl && !isEditing" class="border-t border-gray-200">
-      <button
-        @click="showIframe = !showIframe"
-        class="w-full px-6 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center justify-between transition-colors"
-      >
-        <span>{{ showIframe ? 'Ukryj' : 'Pokaż' }} timeline Jira</span>
-        <svg
-          class="w-5 h-5 transition-transform"
-          :class="{ 'rotate-180': showIframe }"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      <div v-if="showIframe" class="p-4 bg-gray-50 border-t border-gray-200">
-        <div v-if="iframeError" class="text-center py-8 text-gray-500">
-          <p class="mb-2">Nie można załadować widoku Jira.</p>
-          <a
-            :href="jiraTimelineUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-primary-600 hover:text-primary-700"
-          >
-            Otwórz w nowej karcie
-          </a>
-        </div>
-        <iframe
-          v-else
-          :src="jiraTimelineUrl"
-          class="w-full h-96 border border-gray-200 rounded-lg"
-          @error="handleIframeError"
-        ></iframe>
-      </div>
     </div>
   </div>
 </template>
