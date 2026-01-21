@@ -4,8 +4,13 @@ import { computed } from 'vue'
 const props = defineProps({
   percent: {
     type: Number,
-    required: true,
-    validator: (value) => value >= 0 && value <= 100
+    default: null,
+    validator: (value) => value === null || (value >= 0 && value <= 100)
+  },
+  taskStats: {
+    type: Object,
+    default: null
+    // taskStats: { done: 5, inProgress: 2, todo: 3, total: 10 }
   },
   size: {
     type: String,
@@ -25,6 +30,23 @@ const props = defineProps({
     default: null,
     validator: (value) => !value || ['primary', 'amber', 'green', 'blue', 'red'].includes(value)
   }
+})
+
+const isMultiSegment = computed(() => props.taskStats !== null)
+
+const segments = computed(() => {
+  if (!props.taskStats || props.taskStats.total === 0) return null
+  const { done, inProgress, todo, total } = props.taskStats
+  return {
+    done: (done / total) * 100,
+    inProgress: (inProgress / total) * 100,
+    todo: (todo / total) * 100
+  }
+})
+
+const multiSegmentPercent = computed(() => {
+  if (!props.taskStats || props.taskStats.total === 0) return 0
+  return Math.round((props.taskStats.done / props.taskStats.total) * 100)
 })
 
 const sizeClasses = computed(() => {
@@ -59,7 +81,32 @@ const colorClass = computed(() => {
 </script>
 
 <template>
-  <div class="flex items-center gap-3">
+  <!-- Multi-segment mode -->
+  <div v-if="isMultiSegment" class="flex items-center gap-3">
+    <div class="flex-1 bg-gray-200 rounded-full overflow-hidden flex" :class="sizeClasses">
+      <div
+        v-if="segments && segments.done > 0"
+        class="h-full bg-green-500 transition-all duration-500"
+        :style="{ width: `${segments.done}%` }"
+      ></div>
+      <div
+        v-if="segments && segments.inProgress > 0"
+        class="h-full bg-blue-500 transition-all duration-500"
+        :style="{ width: `${segments.inProgress}%` }"
+      ></div>
+      <!-- Gray (todo) is the background, so no need to render -->
+    </div>
+    <span
+      v-if="showLabel"
+      class="text-sm font-medium min-w-[3rem] text-right"
+      :class="taskStats.done === taskStats.total ? 'text-green-600' : 'text-gray-600'"
+    >
+      {{ multiSegmentPercent }}%
+    </span>
+  </div>
+
+  <!-- Simple mode (original) -->
+  <div v-else class="flex items-center gap-3">
     <div class="flex-1 bg-gray-200 rounded-full overflow-hidden" :class="sizeClasses">
       <div
         class="h-full rounded-full transition-all duration-500 ease-out"

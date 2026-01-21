@@ -116,7 +116,7 @@ const tasksByStatus = (sideGoal) => {
 
             <div class="flex items-center gap-3">
               <div class="w-24">
-                <ProgressBar :percent="sideGoal.completionPercent" size="sm" color="amber" />
+                <ProgressBar :task-stats="sideGoal.taskStats" size="sm" />
               </div>
               <svg
                 class="w-5 h-5 text-gray-400 transition-transform"

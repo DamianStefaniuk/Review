@@ -205,8 +205,14 @@ def build_sprint_data(
             'title': goal_data['title'],
             'client': goal_data['client'],
             'tag': goal_data['tag'],
-            'completed': progress == 100,
-            'completionPercent': progress,
+            'completed': progress['percent'] == 100,
+            'completionPercent': progress['percent'],
+            'taskStats': {
+                'done': progress['done'],
+                'inProgress': progress['inProgress'],
+                'todo': progress['todo'],
+                'total': progress['total']
+            },
             'tasks': goal_tasks,
             'comments': existing_comments
         })
@@ -237,8 +243,14 @@ def build_sprint_data(
             'title': sg_data['title'],
             'client': sg_data['client'],
             'tag': sg_data['tag'],
-            'completed': progress == 100,
-            'completionPercent': progress,
+            'completed': progress['percent'] == 100,
+            'completionPercent': progress['percent'],
+            'taskStats': {
+                'done': progress['done'],
+                'inProgress': progress['inProgress'],
+                'todo': progress['todo'],
+                'total': progress['total']
+            },
             'tasks': sg_tasks,
             'comments': existing_comments
         })

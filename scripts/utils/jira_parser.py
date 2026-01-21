@@ -253,21 +253,31 @@ def map_task_to_side_goal(task_labels: List[str], side_goals: List[Dict]) -> Opt
     return None
 
 
-def calculate_goal_progress(goal_tasks: List[Dict]) -> int:
+def calculate_goal_progress(goal_tasks: List[Dict]) -> Dict:
     """
-    Calculate goal completion percentage based on tasks.
+    Calculate goal progress statistics.
 
     Args:
         goal_tasks: List of tasks for the goal
 
     Returns:
-        Completion percentage (0-100)
+        Dict with done, inProgress, todo, total, and percent values
     """
     if not goal_tasks:
-        return 0
+        return {'done': 0, 'inProgress': 0, 'todo': 0, 'total': 0, 'percent': 0}
 
-    done_count = sum(1 for t in goal_tasks if t.get('status') == 'Done')
-    return round((done_count / len(goal_tasks)) * 100)
+    total = len(goal_tasks)
+    done = sum(1 for t in goal_tasks if t.get('status') == 'Done')
+    in_progress = sum(1 for t in goal_tasks if t.get('status') == 'In Progress')
+    todo = total - done - in_progress
+
+    return {
+        'done': done,
+        'inProgress': in_progress,
+        'todo': todo,
+        'total': total,
+        'percent': round((done / total) * 100)
+    }
 
 
 if __name__ == '__main__':

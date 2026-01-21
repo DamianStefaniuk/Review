@@ -102,7 +102,7 @@ const handleAddComment = (comment) => {
 
       <!-- Progress -->
       <div class="mt-4">
-        <ProgressBar :percent="goal.completionPercent" size="md" />
+        <ProgressBar :task-stats="goal.taskStats" size="md" />
       </div>
     </div>
 

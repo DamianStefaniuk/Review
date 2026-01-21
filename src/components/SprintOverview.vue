@@ -145,7 +145,7 @@ const statusBadge = computed(() => {
             </div>
 
             <div class="w-32 flex-shrink-0">
-              <ProgressBar :percent="goal.completionPercent" size="sm" />
+              <ProgressBar :task-stats="goal.taskStats" size="sm" />
             </div>
           </div>
         </button>
