@@ -90,7 +90,7 @@ const handleCloseSprint = async () => {
       <span>Zamknij sprint</span>
     </button>
 
-    <!-- Error message if Gist not configured -->
+    <!-- Error message if repository not configured -->
     <div v-if="error && !showModal" class="absolute top-full left-0 mt-2 p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 max-w-xs z-10">
       {{ error }}
     </div>

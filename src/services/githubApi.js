@@ -1,7 +1,7 @@
 /**
  * GitHub API service for token validation
  *
- * Note: Comment committing and sprint closing have been migrated to gistService.js
+ * Note: Comment committing and sprint closing have been migrated to repoDataService.js
  * and sprintManagementService.js respectively.
  */
 

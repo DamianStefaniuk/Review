@@ -173,7 +173,7 @@ const getGoalTasks = (goal) => {
       </svg>
       <h2 class="text-3xl font-bold mb-4">Brak danych do prezentacji</h2>
       <p class="text-xl text-white/60 mb-8 max-w-md">
-        Nie znaleziono danych sprintu. Upewnij się, że masz skonfigurowany Gist i zsynchronizowane dane z Jira.
+        Nie znaleziono danych sprintu. Upewnij się, że jesteś zalogowany i masz zsynchronizowane dane z Jira.
       </p>
       <button
         @click="exitPresentation"

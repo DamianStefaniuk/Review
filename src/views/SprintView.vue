@@ -222,7 +222,7 @@ onMounted(() => {
         </div>
 
         <div class="flex items-center gap-3">
-          <!-- Gist config (only for authenticated users) -->
+          <!-- Data repo status (only for authenticated users) -->
           <DataRepoStatus v-if="authStore.isAuthenticated" />
 
           <!-- Jira sync button (only for authenticated users) -->

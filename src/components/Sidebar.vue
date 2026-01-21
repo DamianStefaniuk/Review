@@ -110,7 +110,7 @@ const formatDate = (dateStr) => {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
           <p class="text-sm text-gray-500 mb-2">Brak sprintów</p>
-          <p class="text-xs text-gray-400">Skonfiguruj Gist i zsynchronizuj dane z Jira</p>
+          <p class="text-xs text-gray-400">Zaloguj się i zsynchronizuj dane z Jira</p>
         </div>
         <div v-else class="text-gray-400">
           <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -134,17 +134,20 @@ export async function fetchRootFile(filename) {
     throw new Error('Repository not configured - user not authenticated')
   }
 
-  const response = await fetch(
-    `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${filename}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${config.token}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
+  const url = `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${filename}`
+  console.log('[repoDataService] fetchRootFile: Fetching', url)
+
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${config.token}`,
+      'Accept': 'application/vnd.github.v3+json'
     }
-  )
+  })
+
+  console.log('[repoDataService] fetchRootFile:', filename, 'status', response.status)
 
   if (response.status === 404) {
+    console.warn('[repoDataService] fetchRootFile:', filename, 'not found (404)')
     return null
   }
 
@@ -301,28 +304,35 @@ export async function deleteRepoFile(filename, sha) {
 export async function listSprintFiles() {
   const config = await getRepoConfig()
   if (!config) {
+    console.error('[repoDataService] listSprintFiles: No config - user not authenticated')
     throw new Error('Repository not configured - user not authenticated')
   }
 
-  const response = await fetch(
-    `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${config.dataPath}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${config.token}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
+  const url = `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${config.dataPath}`
+  console.log('[repoDataService] listSprintFiles: Fetching from', url)
+
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${config.token}`,
+      'Accept': 'application/vnd.github.v3+json'
     }
-  )
+  })
+
+  console.log('[repoDataService] listSprintFiles: Response status', response.status)
 
   if (response.status === 404) {
+    console.warn('[repoDataService] listSprintFiles: Directory not found (404) - sprints folder may not exist')
     return []
   }
 
   if (!response.ok) {
+    const errorText = await response.text()
+    console.error('[repoDataService] listSprintFiles: Error response', errorText)
     throw new Error(`Failed to list sprint files: ${response.status}`)
   }
 
   const files = await response.json()
+  console.log('[repoDataService] listSprintFiles: Found files', files.map(f => f.name))
 
   return files
     .filter(f => f.name.startsWith('sprint-') && f.name.endsWith('.json'))
