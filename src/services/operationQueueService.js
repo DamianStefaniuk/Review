@@ -13,7 +13,8 @@ const CONFIG = {
   baseDelay: 100,        // ms
   maxDelay: 5000,        // ms
   operationTimeout: 30000, // 30 seconds
-  duplicateWindow: 1000   // 1 second deduplication window
+  duplicateWindow: 1000,  // 1 second deduplication window
+  postOperationDelay: 500 // Delay after each operation to allow GitHub to propagate changes
 }
 
 // Priority levels
@@ -152,6 +153,12 @@ async function processQueue() {
         operation.onSuccess(result.result)
       }
       operation.resolve(result.result)
+
+      // Wait after successful operation to allow GitHub to propagate changes
+      // This prevents the next operation from fetching stale data
+      if (queue.items.length > 0) {
+        await sleep(CONFIG.postOperationDelay)
+      }
     } catch (error) {
       if (operation.onError) {
         operation.onError(error)
