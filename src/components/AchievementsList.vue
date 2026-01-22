@@ -3,7 +3,8 @@ import { ref, computed, watch } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { useAuthStore } from '../stores/authStore'
-import { isRepoDataConfigured, saveSprintToRepo, loadSprintFromRepo } from '../services/repoDataService'
+import { isRepoDataConfigured } from '../services/repoDataService'
+import { useOperationQueue } from '../composables/useOperationQueue'
 
 const props = defineProps({
   content: {
@@ -19,6 +20,8 @@ const props = defineProps({
 const emit = defineEmits(['update'])
 
 const authStore = useAuthStore()
+const { queueSaveAchievements, retryInfo } = useOperationQueue()
+
 const isEditing = ref(false)
 const editContent = ref('')
 const saving = ref(false)
@@ -52,22 +55,17 @@ const saveChanges = async () => {
   saveError.value = null
 
   try {
-    // Load current sprint data from Repository
-    const sprintData = await loadSprintFromRepo(props.sprintId)
-
-    // Update achievements
-    sprintData.achievements = editContent.value
-
-    // Save back to Repository
-    await saveSprintToRepo(sprintData)
+    await queueSaveAchievements(props.sprintId, editContent.value, {
+      onRetry: (attempt, maxRetries) => {
+        saveError.value = `Konflikt danych, ponawiam (${attempt}/${maxRetries})...`
+      }
+    })
 
     // Emit update event to parent
     emit('update', editContent.value)
-
     isEditing.value = false
   } catch (error) {
-    console.error('Failed to save achievements:', error)
-    saveError.value = error.message || 'Nie udalo sie zapisac zmian'
+    saveError.value = error.message || 'Nie udało się zapisać zmian'
   } finally {
     saving.value = false
   }
@@ -78,7 +76,7 @@ const saveChanges = async () => {
   <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-200">
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-gray-900">Osiagniecia dodatkowe</h3>
+        <h3 class="text-lg font-semibold text-gray-900">Osiągnięcia Dodatkowe</h3>
         <button
           v-if="canEdit && !isEditing"
           @click="startEditing"
@@ -154,13 +152,13 @@ const saveChanges = async () => {
         v-html="renderedContent"
       ></div>
       <p v-else class="text-gray-500 text-center py-4">
-        Brak osiagniec dodatkowych
+        Brak osiągnięć dodatkowych
         <button
           v-if="canEdit"
           @click="startEditing"
           class="block mx-auto mt-2 text-sm text-primary-600 hover:text-primary-700"
         >
-          Dodaj osiagniecia
+          Dodaj osiągnięcia
         </button>
       </p>
     </div>

@@ -19,6 +19,7 @@ Aplikacja webowa do prezentacji i archiwizacji review sprintów zespołu. Integr
 - [Format opisu sprintu w Jira](#format-opisu-sprintu-w-jira)
 - [Używanie aplikacji](#używanie-aplikacji)
 - [Struktura projektu](#struktura-projektu)
+- [Kolejka operacji i obsługa konfliktów](#kolejka-operacji-i-obsługa-konfliktów)
 - [Rozwiązywanie problemów](#rozwiązywanie-problemów)
 
 ---
@@ -535,10 +536,12 @@ sprint-review/
 │   ├── services/              # Serwisy (API)
 │   │   ├── authService.js     # GitHub PAT authentication
 │   │   ├── githubApi.js       # Walidacja tokenów GitHub
-│   │   ├── repoDataService.js # Operacje na repozytorium danych
-│   │   ├── sprintManagementService.js # Zarządzanie sprintami
+│   │   ├── repoDataService.js # Operacje na repozytorium danych (niski poziom)
+│   │   ├── operationQueueService.js # Kolejka operacji z retry (SHA conflicts)
 │   │   ├── githubActionsService.js # Wyzwalanie GitHub Actions
 │   │   └── dataLoader.js      # Ładowanie danych (Repository + fallback)
+│   ├── composables/           # Vue composables
+│   │   └── useOperationQueue.js # Composable do kolejki operacji
 │   └── assets/                # Style CSS
 │
 └── public/                    # Pliki statyczne
@@ -710,6 +713,57 @@ Każdy użytkownik aplikacji musi utworzyć własny PAT do logowania:
 1. **Workflow nie uruchamia się** - Sprawdź czy masz uprawnienia do uruchamiania workflow w repozytorium
 2. **Błąd synchronizacji** - Sprawdź logi w zakładce Actions na GitHub
 3. **Dane nie aktualizują się** - Upewnij się, że secrets `DATA_REPO_OWNER`, `DATA_REPO_NAME` i `DATA_REPO_TOKEN` są ustawione w repozytorium
+
+---
+
+## Kolejka operacji i obsługa konfliktów
+
+Aplikacja używa systemu kolejki operacji do bezpiecznej obsługi równoległych zmian danych. Jest to ważne, ponieważ:
+
+1. **Jeden użytkownik** może wykonać wiele operacji szybko (np. dodać kilka komentarzy)
+2. **Wielu użytkowników** może edytować dane jednocześnie
+
+### Jak to działa
+
+```
+┌─────────────────────────────────────────┐
+│ Komponenty Vue (GoalDetail, etc.)       │
+└────────────────┬────────────────────────┘
+                 │ używają
+┌────────────────▼────────────────────────┐
+│ useOperationQueue.js (composable)       │
+│ - queueAddComment()                     │
+│ - queueSaveAchievements()               │
+│ - queueCloseSprint()                    │
+└────────────────┬────────────────────────┘
+                 │ wywołuje
+┌────────────────▼────────────────────────┐
+│ operationQueueService.js                │
+│ - Kolejka FIFO (serializacja operacji)  │
+│ - Retry z exponential backoff (7 prób)  │
+│ - Deduplikacja operacji                 │
+└────────────────┬────────────────────────┘
+                 │ wywołuje
+┌────────────────▼────────────────────────┐
+│ repoDataService.js (GitHub API)         │
+└─────────────────────────────────────────┘
+```
+
+### Operacje objęte kolejką
+
+| Operacja | Retry | Priorytet |
+|----------|-------|-----------|
+| Dodawanie komentarzy | 7 prób | Normalny |
+| Edycja komentarzy | 7 prób | Normalny |
+| Usuwanie komentarzy | 7 prób | Normalny |
+| Zapis osiągnięć | 7 prób | Normalny |
+| Zapis planów następnego sprintu | 7 prób | Normalny |
+| Zamknięcie sprintu | 7 prób | Krytyczny |
+
+### Komunikaty dla użytkownika
+
+- **Podczas retry**: "Konflikt danych, ponawiam (2/7)..."
+- **Po wyczerpaniu prób**: "Nie udało się zapisać po wielu próbach. Odśwież stronę."
 
 ---
 

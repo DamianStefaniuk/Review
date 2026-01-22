@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
-import { closeSprint, closeSprintAndCreateNew } from '../services/sprintManagementService'
 import { isRepoDataConfigured } from '../services/repoDataService'
+import { useOperationQueue } from '../composables/useOperationQueue'
 
 const props = defineProps({
   sprintId: {
@@ -19,6 +19,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['sprint-closed', 'sprint-created'])
+
+const { queueCloseSprint } = useOperationQueue()
 
 const showModal = ref(false)
 const createNewSprint = ref(true)
@@ -46,15 +48,16 @@ const handleCloseSprint = async () => {
   error.value = null
 
   try {
-    if (createNewSprint.value) {
-      const result = await closeSprintAndCreateNew(props.sprintId)
-      success.value = true
-      emit('sprint-closed', result.closedSprint)
+    const result = await queueCloseSprint(props.sprintId, createNewSprint.value, {
+      onRetry: (attempt, maxRetries) => {
+        error.value = `Konflikt danych, ponawiam (${attempt}/${maxRetries})...`
+      }
+    })
+
+    success.value = true
+    emit('sprint-closed', result.closedSprint)
+    if (createNewSprint.value && result.newSprint) {
       emit('sprint-created', result.newSprint)
-    } else {
-      const closedSprint = await closeSprint(props.sprintId)
-      success.value = true
-      emit('sprint-closed', closedSprint)
     }
 
     // Close modal after success

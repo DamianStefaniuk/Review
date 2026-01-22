@@ -1,8 +1,8 @@
 /**
  * GitHub API service for token validation
  *
- * Note: Comment committing and sprint closing have been migrated to repoDataService.js
- * and sprintManagementService.js respectively.
+ * Note: All data operations have been migrated to repoDataService.js
+ * and operationQueueService.js (for queue serialization and retry).
  */
 
 import { useAuthStore } from '../stores/authStore'

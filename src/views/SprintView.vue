@@ -2,8 +2,9 @@
 import { ref, watch, onMounted, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadSprint, loadCurrentSprintInfo } from '../services/dataLoader'
-import { addCommentToRepo, updateCommentInRepo, deleteCommentFromRepo, isRepoDataConfigured } from '../services/repoDataService'
+import { isRepoDataConfigured } from '../services/repoDataService'
 import { useAuthStore } from '../stores/authStore'
+import { useOperationQueue } from '../composables/useOperationQueue'
 import SprintOverview from '../components/SprintOverview.vue'
 import GoalDetail from '../components/GoalDetail.vue'
 import SideGoalsList from '../components/SideGoalsList.vue'
@@ -18,6 +19,7 @@ import DataRepoStatus from '../components/DataRepoStatus.vue'
 
 const authStore = useAuthStore()
 const refreshSidebar = inject('refreshSidebar', () => {})
+const { queueAddComment, queueUpdateComment, queueDeleteComment } = useOperationQueue()
 
 const route = useRoute()
 const sprint = ref(null)
@@ -84,7 +86,7 @@ const handleAddComment = async ({ goalId, comment, isSideGoal }) => {
   // Try to save to Repository if configured
   if (isRepoDataConfigured()) {
     try {
-      await addCommentToRepo(sprint.value.id, goalId, newComment, isSideGoal)
+      await queueAddComment(sprint.value.id, goalId, newComment, isSideGoal)
     } catch (err) {
       console.error('Failed to save comment to Repository:', err)
       // Comment is still added locally
@@ -118,7 +120,7 @@ const handleUpdateComment = async ({ goalId, commentId, updatedComment, isSideGo
   // Try to save to Repository if configured
   if (isRepoDataConfigured()) {
     try {
-      await updateCommentInRepo(sprint.value.id, goalId, commentId, updatedComment, isSideGoal)
+      await queueUpdateComment(sprint.value.id, goalId, commentId, updatedComment, isSideGoal)
     } catch (err) {
       console.error('Failed to update comment in Repository:', err)
     }
@@ -146,7 +148,7 @@ const handleDeleteComment = async ({ goalId, commentId, isSideGoal }) => {
   // Try to save to Repository if configured
   if (isRepoDataConfigured()) {
     try {
-      await deleteCommentFromRepo(sprint.value.id, goalId, commentId, isSideGoal)
+      await queueDeleteComment(sprint.value.id, goalId, commentId, isSideGoal)
     } catch (err) {
       console.error('Failed to delete comment from Repository:', err)
     }

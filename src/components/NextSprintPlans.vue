@@ -3,7 +3,8 @@ import { ref, computed, watch } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { useAuthStore } from '../stores/authStore'
-import { isRepoDataConfigured, saveSprintToRepo, loadSprintFromRepo } from '../services/repoDataService'
+import { isRepoDataConfigured } from '../services/repoDataService'
+import { useOperationQueue } from '../composables/useOperationQueue'
 
 const props = defineProps({
   content: {
@@ -23,6 +24,8 @@ const props = defineProps({
 const emit = defineEmits(['update'])
 
 const authStore = useAuthStore()
+const { queueSaveNextSprintPlans } = useOperationQueue()
+
 const isEditing = ref(false)
 const editContent = ref('')
 const saving = ref(false)
@@ -56,27 +59,21 @@ const saveChanges = async () => {
   saveError.value = null
 
   try {
-    // Load current sprint data from Repository
-    const sprintData = await loadSprintFromRepo(props.sprintId)
-
-    // Update nextSprintPlans
-    sprintData.nextSprintPlans = editContent.value
-
-    // Save back to Repository
-    await saveSprintToRepo(sprintData)
+    await queueSaveNextSprintPlans(props.sprintId, editContent.value, {
+      onRetry: (attempt, maxRetries) => {
+        saveError.value = `Konflikt danych, ponawiam (${attempt}/${maxRetries})...`
+      }
+    })
 
     // Emit update event to parent
     emit('update', editContent.value)
-
     isEditing.value = false
   } catch (error) {
-    console.error('Failed to save next sprint plans:', error)
     saveError.value = error.message || 'Nie udało się zapisać zmian'
   } finally {
     saving.value = false
   }
 }
-
 </script>
 
 <template>

@@ -121,7 +121,7 @@ const generatePdfContent = () => {
   // Achievements section (Markdown text)
   if (sprint.achievements && sprint.achievements.trim()) {
     html += `
-      <h2>Osiagniecia dodatkowe</h2>
+      <h2>Osiągnięcia Dodatkowe</h2>
       <div style="white-space: pre-wrap; font-size: 14px;">${sprint.achievements}</div>
     `
   }
