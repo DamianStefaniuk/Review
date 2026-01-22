@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { useAuthStore } from '../stores/authStore'
 import { isRepoDataConfigured, saveSprintToRepo, loadSprintFromRepo } from '../services/repoDataService'
 
@@ -31,7 +32,7 @@ const canEdit = computed(() => authStore.isAuthenticated && isRepoDataConfigured
 
 const renderedContent = computed(() => {
   if (!props.content) return ''
-  return marked(props.content)
+  return DOMPurify.sanitize(marked(props.content))
 })
 
 watch(() => props.content, (newContent) => {
@@ -162,7 +163,7 @@ const saveChanges = async () => {
         <h4 class="text-sm font-medium text-gray-700 mb-3">Podgląd:</h4>
         <div
           class="markdown-content prose prose-sm max-w-none p-4 bg-gray-50 rounded-lg"
-          v-html="marked(editContent)"
+          v-html="DOMPurify.sanitize(marked(editContent))"
         ></div>
       </div>
     </div>

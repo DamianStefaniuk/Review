@@ -165,24 +165,3 @@ export async function pollWorkflowStatus(runId, options = {}) {
 
   throw new Error('Workflow polling timeout')
 }
-
-/**
- * Trigger sync and wait for completion
- */
-export async function triggerAndWaitForSync(options = {}) {
-  // Trigger the workflow
-  await triggerJiraSyncWorkflow()
-
-  // Wait a bit for the workflow to start
-  await new Promise(resolve => setTimeout(resolve, 2000))
-
-  // Get the latest run (should be our triggered one)
-  const latestRun = await getLatestWorkflowRun()
-
-  if (!latestRun) {
-    throw new Error('Could not find workflow run')
-  }
-
-  // Poll for completion
-  return pollWorkflowStatus(latestRun.id, options)
-}

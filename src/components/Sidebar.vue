@@ -37,7 +37,6 @@ const loadSprints = async () => {
 }
 
 const refreshSprints = async () => {
-  console.log('[Sidebar] Refreshing sprints...')
   await loadSprints()
 }
 

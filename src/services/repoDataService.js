@@ -39,8 +39,7 @@ async function loadRepoConfig() {
         dataPath: 'sprints'
       }
     }
-  } catch (error) {
-    console.warn('Failed to load repo config, using defaults:', error)
+  } catch {
     repoConfig = {
       owner: 'plumspzoo',
       repo: 'Review-Data',
@@ -135,7 +134,6 @@ export async function fetchRootFile(filename) {
   }
 
   const url = `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${filename}`
-  console.log('[repoDataService] fetchRootFile: Fetching', url)
 
   const response = await fetch(url, {
     headers: {
@@ -144,10 +142,7 @@ export async function fetchRootFile(filename) {
     }
   })
 
-  console.log('[repoDataService] fetchRootFile:', filename, 'status', response.status)
-
   if (response.status === 404) {
-    console.warn('[repoDataService] fetchRootFile:', filename, 'not found (404)')
     return null
   }
 
@@ -262,54 +257,16 @@ export async function updateRootFile(filename, content, sha = null) {
 }
 
 /**
- * Delete a file from the repository
- * @param {string} filename - File name (without path)
- * @param {string} sha - SHA of the file (required)
- */
-export async function deleteRepoFile(filename, sha) {
-  const config = await getRepoConfig()
-  if (!config) {
-    throw new Error('Repository not configured - user not authenticated')
-  }
-
-  const path = `${config.dataPath}/${filename}`
-
-  const response = await fetch(
-    `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${path}`,
-    {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${config.token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/vnd.github.v3+json'
-      },
-      body: JSON.stringify({
-        message: `Delete ${filename}`,
-        sha
-      })
-    }
-  )
-
-  if (!response.ok) {
-    throw new Error(`Failed to delete file ${filename}: ${response.status}`)
-  }
-
-  return true
-}
-
-/**
  * List all sprint files in the repository
  * @returns {Promise<number[]>} - Array of sprint IDs sorted descending
  */
 export async function listSprintFiles() {
   const config = await getRepoConfig()
   if (!config) {
-    console.error('[repoDataService] listSprintFiles: No config - user not authenticated')
     throw new Error('Repository not configured - user not authenticated')
   }
 
   const url = `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${config.dataPath}`
-  console.log('[repoDataService] listSprintFiles: Fetching from', url)
 
   const response = await fetch(url, {
     headers: {
@@ -318,21 +275,15 @@ export async function listSprintFiles() {
     }
   })
 
-  console.log('[repoDataService] listSprintFiles: Response status', response.status)
-
   if (response.status === 404) {
-    console.warn('[repoDataService] listSprintFiles: Directory not found (404) - sprints folder may not exist')
     return []
   }
 
   if (!response.ok) {
-    const errorText = await response.text()
-    console.error('[repoDataService] listSprintFiles: Error response', errorText)
     throw new Error(`Failed to list sprint files: ${response.status}`)
   }
 
   const files = await response.json()
-  console.log('[repoDataService] listSprintFiles: Found files', files.map(f => f.name))
 
   return files
     .filter(f => f.name.startsWith('sprint-') && f.name.endsWith('.json'))
@@ -383,13 +334,11 @@ export async function loadCurrentSprintInfoFromRepo() {
  */
 export async function loadSprintListFromRepo() {
   const sprintIds = await listSprintFiles()
-  console.log('[repoDataService] Found sprint IDs:', sprintIds)
   const sprints = []
 
   for (const id of sprintIds) {
     try {
       const sprint = await loadSprintFromRepo(id)
-      console.log(`[repoDataService] Loaded sprint ${id}:`, { name: sprint.name, status: sprint.status })
       sprints.push({
         id: sprint.id,
         name: sprint.name,
@@ -397,12 +346,11 @@ export async function loadSprintListFromRepo() {
         startDate: sprint.startDate,
         endDate: sprint.endDate
       })
-    } catch (error) {
-      console.error(`[repoDataService] Failed to load sprint ${id}:`, error)
+    } catch {
+      // Skip sprints that fail to load
     }
   }
 
-  console.log('[repoDataService] Returning sprints:', sprints)
   return sprints
 }
 
@@ -499,17 +447,6 @@ export async function addCommentToRepo(sprintId, goalId, comment, isSideGoal = f
   await updateRepoFile(filename, sprintData, result.sha)
 
   return true
-}
-
-/**
- * Add comment to a side goal in repository
- * @param {number} sprintId
- * @param {number|string} sideGoalId
- * @param {object} comment
- * @returns {Promise<boolean>}
- */
-export async function addCommentToSideGoalInRepo(sprintId, sideGoalId, comment) {
-  return addCommentToRepo(sprintId, sideGoalId, comment, true)
 }
 
 /**

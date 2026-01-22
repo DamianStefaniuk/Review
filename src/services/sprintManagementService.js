@@ -4,7 +4,6 @@
  */
 
 import {
-  fetchRepoFile,
   updateRepoFile,
   createRepoFile,
   updateCurrentSprintInfoInRepo,
@@ -81,32 +80,4 @@ export async function closeSprintAndCreateNew(currentSprintId) {
     closedSprint,
     newSprint
   }
-}
-
-/**
- * Get sprint status
- */
-export async function getSprintStatus(sprintId) {
-  try {
-    const sprintData = await loadSprintFromRepo(sprintId)
-    return {
-      exists: true,
-      status: sprintData.status,
-      closedAt: sprintData.closedAt
-    }
-  } catch {
-    return {
-      exists: false,
-      status: null,
-      closedAt: null
-    }
-  }
-}
-
-/**
- * Check if sprint can be closed
- */
-export async function canCloseSprint(sprintId) {
-  const status = await getSprintStatus(sprintId)
-  return status.exists && status.status === 'active'
 }

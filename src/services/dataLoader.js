@@ -12,17 +12,6 @@ import {
 const BASE_PATH = './data'
 
 /**
- * Load configuration
- */
-export async function loadConfig() {
-  const response = await fetch(`${BASE_PATH}/config.json`)
-  if (!response.ok) {
-    throw new Error('Failed to load config')
-  }
-  return response.json()
-}
-
-/**
  * Load current sprint info (from Repository or local file)
  */
 export async function loadCurrentSprintInfo() {
@@ -120,53 +109,6 @@ export function getTasksForGoal(sprint, goal) {
  */
 export function getTasksForSideGoal(sprint, sideGoal) {
   return sideGoal.tasks.map(taskKey => getTaskByKey(sprint, taskKey)).filter(Boolean)
-}
-
-/**
- * Get tasks not assigned to any goal or side goal
- */
-export function getUnassignedTasks(sprint) {
-  const assignedTaskKeys = new Set([
-    ...sprint.goals.flatMap(goal => goal.tasks),
-    ...(sprint.sideGoals || []).flatMap(sg => sg.tasks)
-  ])
-  return sprint.tasks.filter(task => !assignedTaskKeys.has(task.key))
-}
-
-/**
- * Get unique clients from sprint
- */
-export function getClients(sprint) {
-  const clients = new Set()
-
-  sprint.goals.forEach(goal => {
-    if (goal.client) clients.add(goal.client)
-  })
-
-  // Include clients from side goals
-  if (sprint.sideGoals) {
-    sprint.sideGoals.forEach(sideGoal => {
-      if (sideGoal.client) clients.add(sideGoal.client)
-    })
-  }
-
-  return Array.from(clients).sort()
-}
-
-/**
- * Filter goals by client
- */
-export function filterGoalsByClient(goals, client) {
-  if (!client) return goals
-  return goals.filter(goal => goal.client === client)
-}
-
-/**
- * Filter side goals by client
- */
-export function filterSideGoalsByClient(sideGoals, client) {
-  if (!client) return sideGoals
-  return sideGoals.filter(sideGoal => sideGoal.client === client)
 }
 
 /**
