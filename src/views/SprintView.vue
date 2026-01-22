@@ -78,8 +78,8 @@ const handleAddComment = async ({ goalId, comment, isSideGoal }) => {
     goal.comments = []
   }
 
-  // Add comment locally
-  goal.comments.push(newComment)
+  // Add comment locally (at the beginning for newest first)
+  goal.comments.unshift(newComment)
 
   // Try to save to Repository if configured
   if (isRepoDataConfigured()) {
@@ -92,7 +92,7 @@ const handleAddComment = async ({ goalId, comment, isSideGoal }) => {
   }
 }
 
-const handleUpdateComment = async ({ goalId, commentId, comment, isSideGoal }) => {
+const handleUpdateComment = async ({ goalId, commentId, updatedComment, isSideGoal }) => {
   if (!sprint.value) return
 
   // Find goal in main goals or side goals
@@ -110,15 +110,15 @@ const handleUpdateComment = async ({ goalId, commentId, comment, isSideGoal }) =
 
   goal.comments[commentIndex] = {
     ...goal.comments[commentIndex],
-    text: comment.text,
-    author: comment.author,
+    text: updatedComment.text,
+    author: updatedComment.author,
     updatedAt: new Date().toISOString()
   }
 
   // Try to save to Repository if configured
   if (isRepoDataConfigured()) {
     try {
-      await updateCommentInRepo(sprint.value.id, goalId, commentId, comment, isSideGoal)
+      await updateCommentInRepo(sprint.value.id, goalId, commentId, updatedComment, isSideGoal)
     } catch (err) {
       console.error('Failed to update comment in Repository:', err)
     }

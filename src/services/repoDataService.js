@@ -406,143 +406,197 @@ export async function updateCurrentSprintInfoInRepo(sprintId, isActive) {
 }
 
 /**
- * Add comment to a goal in repository
+ * Add comment to a goal in repository with retry logic for SHA conflicts
  * @param {number} sprintId
  * @param {number|string} goalId
  * @param {object} comment
  * @param {boolean} isSideGoal
+ * @param {number} retries - Number of retry attempts on conflict
  * @returns {Promise<boolean>}
  */
-export async function addCommentToRepo(sprintId, goalId, comment, isSideGoal = false) {
+export async function addCommentToRepo(sprintId, goalId, comment, isSideGoal = false, retries = 3) {
   const filename = `sprint-${sprintId}.json`
-  const result = await fetchRepoFile(filename)
 
-  if (!result) {
-    throw new Error(`Sprint ${sprintId} not found in repository`)
-  }
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const result = await fetchRepoFile(filename)
 
-  const sprintData = result.content
-
-  // Find the goal in main goals or side goals
-  let goal
-  if (isSideGoal) {
-    goal = sprintData.sideGoals?.find(g => g.id === goalId)
-    if (!goal) {
-      throw new Error(`Side goal ${goalId} not found in sprint ${sprintId}`)
+    if (!result) {
+      throw new Error(`Sprint ${sprintId} not found in repository`)
     }
-  } else {
-    goal = sprintData.goals.find(g => g.id === goalId)
-    if (!goal) {
-      throw new Error(`Goal ${goalId} not found in sprint ${sprintId}`)
+
+    const sprintData = result.content
+
+    // Find the goal in main goals or side goals
+    let goal
+    if (isSideGoal) {
+      goal = sprintData.sideGoals?.find(g => g.id === goalId)
+      if (!goal) {
+        throw new Error(`Side goal ${goalId} not found in sprint ${sprintId}`)
+      }
+    } else {
+      goal = sprintData.goals.find(g => g.id === goalId)
+      if (!goal) {
+        throw new Error(`Goal ${goalId} not found in sprint ${sprintId}`)
+      }
+    }
+
+    if (!goal.comments) {
+      goal.comments = []
+    }
+
+    // Check if comment already exists (to avoid duplicates on retry)
+    if (!goal.comments.some(c => c.id === comment.id)) {
+      // Add at the beginning for newest first
+      goal.comments.unshift(comment)
+    }
+
+    try {
+      // Save updated sprint data
+      await updateRepoFile(filename, sprintData, result.sha)
+      return true
+    } catch (error) {
+      // Check if it's a conflict error (SHA mismatch)
+      if (error.message.includes('409') || error.message.includes('sha')) {
+        if (attempt < retries) {
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)))
+          continue
+        }
+      }
+      throw error
     }
   }
-
-  if (!goal.comments) {
-    goal.comments = []
-  }
-
-  goal.comments.push(comment)
-
-  // Save updated sprint data
-  await updateRepoFile(filename, sprintData, result.sha)
 
   return true
 }
 
 /**
- * Update a comment in a goal in repository
+ * Update a comment in a goal in repository with retry logic for SHA conflicts
  * @param {number} sprintId
  * @param {number|string} goalId
  * @param {string} commentId
  * @param {object} updatedComment - { text, author }
  * @param {boolean} isSideGoal
+ * @param {number} retries - Number of retry attempts on conflict
  * @returns {Promise<boolean>}
  */
-export async function updateCommentInRepo(sprintId, goalId, commentId, updatedComment, isSideGoal = false) {
+export async function updateCommentInRepo(sprintId, goalId, commentId, updatedComment, isSideGoal = false, retries = 3) {
   const filename = `sprint-${sprintId}.json`
-  const result = await fetchRepoFile(filename)
 
-  if (!result) {
-    throw new Error(`Sprint ${sprintId} not found in repository`)
-  }
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const result = await fetchRepoFile(filename)
 
-  const sprintData = result.content
-
-  // Find the goal in main goals or side goals
-  let goal
-  if (isSideGoal) {
-    goal = sprintData.sideGoals?.find(g => g.id === goalId)
-    if (!goal) {
-      throw new Error(`Side goal ${goalId} not found in sprint ${sprintId}`)
+    if (!result) {
+      throw new Error(`Sprint ${sprintId} not found in repository`)
     }
-  } else {
-    goal = sprintData.goals.find(g => g.id === goalId)
-    if (!goal) {
-      throw new Error(`Goal ${goalId} not found in sprint ${sprintId}`)
+
+    const sprintData = result.content
+
+    // Find the goal in main goals or side goals
+    let goal
+    if (isSideGoal) {
+      goal = sprintData.sideGoals?.find(g => g.id === goalId)
+      if (!goal) {
+        throw new Error(`Side goal ${goalId} not found in sprint ${sprintId}`)
+      }
+    } else {
+      goal = sprintData.goals.find(g => g.id === goalId)
+      if (!goal) {
+        throw new Error(`Goal ${goalId} not found in sprint ${sprintId}`)
+      }
+    }
+
+    const commentIndex = goal.comments?.findIndex(c => c.id === commentId)
+    if (commentIndex === -1 || commentIndex === undefined) {
+      throw new Error(`Comment ${commentId} not found in goal ${goalId}`)
+    }
+
+    // Update the comment, preserving id and createdAt
+    goal.comments[commentIndex] = {
+      ...goal.comments[commentIndex],
+      text: updatedComment.text,
+      author: updatedComment.author,
+      updatedAt: new Date().toISOString()
+    }
+
+    try {
+      // Save updated sprint data
+      await updateRepoFile(filename, sprintData, result.sha)
+      return true
+    } catch (error) {
+      // Check if it's a conflict error (SHA mismatch)
+      if (error.message.includes('409') || error.message.includes('sha')) {
+        if (attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)))
+          continue
+        }
+      }
+      throw error
     }
   }
-
-  const commentIndex = goal.comments?.findIndex(c => c.id === commentId)
-  if (commentIndex === -1 || commentIndex === undefined) {
-    throw new Error(`Comment ${commentId} not found in goal ${goalId}`)
-  }
-
-  // Update the comment, preserving id and createdAt
-  goal.comments[commentIndex] = {
-    ...goal.comments[commentIndex],
-    text: updatedComment.text,
-    author: updatedComment.author,
-    updatedAt: new Date().toISOString()
-  }
-
-  // Save updated sprint data
-  await updateRepoFile(filename, sprintData, result.sha)
 
   return true
 }
 
 /**
- * Delete a comment from a goal in repository
+ * Delete a comment from a goal in repository with retry logic for SHA conflicts
  * @param {number} sprintId
  * @param {number|string} goalId
  * @param {string} commentId
  * @param {boolean} isSideGoal
+ * @param {number} retries - Number of retry attempts on conflict
  * @returns {Promise<boolean>}
  */
-export async function deleteCommentFromRepo(sprintId, goalId, commentId, isSideGoal = false) {
+export async function deleteCommentFromRepo(sprintId, goalId, commentId, isSideGoal = false, retries = 3) {
   const filename = `sprint-${sprintId}.json`
-  const result = await fetchRepoFile(filename)
 
-  if (!result) {
-    throw new Error(`Sprint ${sprintId} not found in repository`)
-  }
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const result = await fetchRepoFile(filename)
 
-  const sprintData = result.content
-
-  // Find the goal in main goals or side goals
-  let goal
-  if (isSideGoal) {
-    goal = sprintData.sideGoals?.find(g => g.id === goalId)
-    if (!goal) {
-      throw new Error(`Side goal ${goalId} not found in sprint ${sprintId}`)
+    if (!result) {
+      throw new Error(`Sprint ${sprintId} not found in repository`)
     }
-  } else {
-    goal = sprintData.goals.find(g => g.id === goalId)
-    if (!goal) {
-      throw new Error(`Goal ${goalId} not found in sprint ${sprintId}`)
+
+    const sprintData = result.content
+
+    // Find the goal in main goals or side goals
+    let goal
+    if (isSideGoal) {
+      goal = sprintData.sideGoals?.find(g => g.id === goalId)
+      if (!goal) {
+        throw new Error(`Side goal ${goalId} not found in sprint ${sprintId}`)
+      }
+    } else {
+      goal = sprintData.goals.find(g => g.id === goalId)
+      if (!goal) {
+        throw new Error(`Goal ${goalId} not found in sprint ${sprintId}`)
+      }
+    }
+
+    const commentIndex = goal.comments?.findIndex(c => c.id === commentId)
+    if (commentIndex === -1 || commentIndex === undefined) {
+      // Comment already deleted (possibly from a previous attempt)
+      return true
+    }
+
+    // Remove the comment
+    goal.comments.splice(commentIndex, 1)
+
+    try {
+      // Save updated sprint data
+      await updateRepoFile(filename, sprintData, result.sha)
+      return true
+    } catch (error) {
+      // Check if it's a conflict error (SHA mismatch)
+      if (error.message.includes('409') || error.message.includes('sha')) {
+        if (attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)))
+          continue
+        }
+      }
+      throw error
     }
   }
-
-  const commentIndex = goal.comments?.findIndex(c => c.id === commentId)
-  if (commentIndex === -1 || commentIndex === undefined) {
-    throw new Error(`Comment ${commentId} not found in goal ${goalId}`)
-  }
-
-  // Remove the comment
-  goal.comments.splice(commentIndex, 1)
-
-  // Save updated sprint data
-  await updateRepoFile(filename, sprintData, result.sha)
 
   return true
 }
