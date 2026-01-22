@@ -1,9 +1,16 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { loadSprint, loadCurrentSprintInfo, calculateSprintStats, getTasksForGoal } from '../services/dataLoader'
 import ProgressBar from '../components/ProgressBar.vue'
 import { pluralize, pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
+
+const renderMarkdown = (text) => {
+  if (!text) return ''
+  return DOMPurify.sanitize(marked(text))
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -304,8 +311,7 @@ const getGoalTasks = (goal) => {
                     :key="comment.id"
                     class="p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20"
                   >
-                    <div v-if="comment.author" class="font-medium text-yellow-400 mb-1">{{ comment.author }}</div>
-                    <div class="text-sm text-white/80">{{ comment.text }}</div>
+                    <div class="text-sm text-white/80 prose prose-sm prose-invert max-w-none" v-html="renderMarkdown(comment.text)"></div>
                   </div>
                 </div>
               </div>
@@ -397,8 +403,7 @@ const getGoalTasks = (goal) => {
           <div v-else-if="currentSlideData?.type === 'next'" :key="'next'" class="max-w-4xl w-full">
             <h2 class="text-4xl font-bold mb-8 text-center">Plany na następny sprint</h2>
 
-            <div class="prose prose-invert prose-lg max-w-none text-white/80 whitespace-pre-wrap">
-              {{ sprint.nextSprintPlans }}
+            <div class="prose prose-invert prose-lg max-w-none text-white/80" v-html="renderMarkdown(sprint.nextSprintPlans)">
             </div>
           </div>
 

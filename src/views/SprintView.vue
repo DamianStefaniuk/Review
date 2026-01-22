@@ -71,7 +71,6 @@ const handleAddComment = async ({ goalId, comment, isSideGoal }) => {
   const newComment = {
     id: `c${Date.now()}`,
     text: comment.text,
-    author: comment.author,
     createdAt: new Date().toISOString()
   }
 
@@ -113,7 +112,6 @@ const handleUpdateComment = async ({ goalId, commentId, updatedComment, isSideGo
   goal.comments[commentIndex] = {
     ...goal.comments[commentIndex],
     text: updatedComment.text,
-    author: updatedComment.author,
     updatedAt: new Date().toISOString()
   }
 

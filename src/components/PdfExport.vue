@@ -1,6 +1,13 @@
 <script setup>
 import { ref } from 'vue'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { POLISH_NOUNS } from '../utils/pluralize'
+
+const renderMarkdown = (text) => {
+  if (!text) return ''
+  return DOMPurify.sanitize(marked(text))
+}
 
 const props = defineProps({
   sprint: {
@@ -67,7 +74,8 @@ const generatePdfContent = () => {
       .status-todo { color: #6b7280; }
       .achievement { padding: 8px 0; font-size: 14px; }
       .comment { background: #fef3c7; padding: 8px 12px; border-radius: 6px; margin-top: 8px; font-size: 13px; }
-      .comment-author { font-weight: 600; color: #92400e; }
+      .comment ul, .comment ol { margin: 4px 0; padding-left: 20px; }
+      .comment p { margin: 4px 0; }
     </style>
 
     <h1>${sprint.name}</h1>
@@ -90,7 +98,7 @@ const generatePdfContent = () => {
         </div>
         ${goal.comments.length > 0 ? goal.comments.map(c => `
           <div class="comment">
-            <span class="comment-author">${c.author}:</span> ${c.text}
+            ${renderMarkdown(c.text)}
           </div>
         `).join('') : ''}
       </div>
@@ -122,7 +130,7 @@ const generatePdfContent = () => {
   if (sprint.achievements && sprint.achievements.trim()) {
     html += `
       <h2>Osiągnięcia Dodatkowe</h2>
-      <div style="white-space: pre-wrap; font-size: 14px;">${sprint.achievements}</div>
+      <div style="font-size: 14px;">${renderMarkdown(sprint.achievements)}</div>
     `
   }
 
@@ -153,7 +161,7 @@ const generatePdfContent = () => {
   if (sprint.nextSprintPlans) {
     html += `
       <h2>Plany na następny sprint</h2>
-      <div style="white-space: pre-wrap; font-size: 14px;">${sprint.nextSprintPlans}</div>
+      <div style="font-size: 14px;">${renderMarkdown(sprint.nextSprintPlans)}</div>
     `
   }
 

@@ -155,7 +155,6 @@ export function useOperationQueue() {
         goal.comments[commentIndex] = {
           ...goal.comments[commentIndex],
           text: updatedComment.text,
-          author: updatedComment.author,
           updatedAt: new Date().toISOString()
         }
 

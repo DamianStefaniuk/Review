@@ -45,15 +45,15 @@ const allGoalsCompleted = computed(() =>
 
 const headerGradient = computed(() => {
   if (allGoalsCompleted.value) {
-    // Wszystkie cele główne osiągnięte - zielony
-    return 'bg-gradient-to-r from-green-50 to-white'
+    // Wszystkie cele główne osiągnięte - zielony (ciemniejszy)
+    return 'bg-gradient-to-r from-green-100 to-white'
   }
   if (props.sprint.status === 'active') {
-    // Sprint aktywny, nie wszystkie cele - niebieski
-    return 'bg-gradient-to-r from-primary-50 to-white'
+    // Sprint aktywny, nie wszystkie cele - niebieski (ciemniejszy)
+    return 'bg-gradient-to-r from-primary-100 to-white'
   }
-  // Sprint zamknięty przed ukończeniem - czerwony
-  return 'bg-gradient-to-r from-red-50 to-white'
+  // Sprint zamknięty przed ukończeniem - czerwony (ciemniejszy)
+  return 'bg-gradient-to-r from-red-100 to-white'
 })
 
 const progressColor = computed(() => {

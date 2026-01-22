@@ -1,5 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import ProgressBar from './ProgressBar.vue'
 import CommentEditor from './CommentEditor.vue'
 import { getTasksForGoal, getTasksForSideGoal } from '../services/dataLoader'
@@ -23,8 +25,13 @@ const isSideGoal = computed(() => props.goal.isSideGoal === true)
 // Edit state
 const editingCommentId = ref(null)
 const editText = ref('')
-const editAuthor = ref('')
 const isUpdating = ref(false)
+
+// Computed for edit preview
+const editPreview = computed(() => {
+  if (!editText.value) return ''
+  return DOMPurify.sanitize(marked(editText.value))
+})
 
 // Delete state
 const deletingCommentId = ref(null)
@@ -79,13 +86,11 @@ const handleAddComment = (comment) => {
 const startEditing = (comment) => {
   editingCommentId.value = comment.id
   editText.value = comment.text
-  editAuthor.value = comment.author || ''
 }
 
 const cancelEditing = () => {
   editingCommentId.value = null
   editText.value = ''
-  editAuthor.value = ''
 }
 
 const saveEdit = async () => {
@@ -96,8 +101,7 @@ const saveEdit = async () => {
     goalId: props.goal.id,
     commentId: editingCommentId.value,
     updatedComment: {
-      text: editText.value.trim(),
-      author: editAuthor.value.trim()
+      text: editText.value.trim()
     },
     isSideGoal: isSideGoal.value
   })
@@ -105,8 +109,13 @@ const saveEdit = async () => {
   // Reset state after emit (parent will handle the actual update)
   editingCommentId.value = null
   editText.value = ''
-  editAuthor.value = ''
   isUpdating.value = false
+}
+
+// Helper function to render markdown for comments
+const renderMarkdown = (text) => {
+  if (!text) return ''
+  return DOMPurify.sanitize(marked(text))
 }
 
 // Delete functions
@@ -156,7 +165,7 @@ const executeDelete = async () => {
               </svg>
               {{ goal.client }}
             </span>
-            <span v-if="!isSideGoal" class="inline-flex items-center gap-1.5">
+            <span v-if="!isSideGoal && goal.tag" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-full">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
@@ -221,17 +230,22 @@ const executeDelete = async () => {
         >
           <!-- Edit mode -->
           <div v-if="editingCommentId === comment.id" class="space-y-3">
-            <input
-              v-model="editAuthor"
-              type="text"
-              placeholder="Autor (Opcjonalne)"
-              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
             <textarea
               v-model="editText"
               rows="3"
-              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none font-mono"
             ></textarea>
+            <p class="text-xs text-gray-500">Markdown: listy (- lub 1.), **pogrubienie**, *kursywa*</p>
+
+            <!-- Preview -->
+            <div v-if="editText" class="pt-3 border-t border-gray-200">
+              <h4 class="text-sm font-medium text-gray-700 mb-2">Podglad:</h4>
+              <div
+                class="markdown-content prose prose-sm max-w-none p-3 bg-white rounded-lg border border-gray-200"
+                v-html="editPreview"
+              ></div>
+            </div>
+
             <div class="flex justify-end gap-2">
               <button
                 @click="cancelEditing"
@@ -253,7 +267,6 @@ const executeDelete = async () => {
           <template v-else>
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
-                <span v-if="comment.author" class="font-medium text-gray-900">{{ comment.author }}</span>
                 <span class="text-xs text-gray-500">{{ formatDate(comment.createdAt) }}</span>
                 <span v-if="comment.updatedAt" class="text-xs text-gray-400">(edytowano)</span>
               </div>
@@ -280,7 +293,10 @@ const executeDelete = async () => {
                 </button>
               </div>
             </div>
-            <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ comment.text }}</p>
+            <div
+              class="text-sm text-gray-700 markdown-content prose prose-sm max-w-none"
+              v-html="renderMarkdown(comment.text)"
+            ></div>
 
             <!-- Delete confirmation -->
             <div v-if="deletingCommentId === comment.id" class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
