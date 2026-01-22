@@ -101,10 +101,9 @@ export async function fetchRepoFile(filename) {
     {
       headers: {
         'Authorization': `Bearer ${config.token}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'Cache-Control': 'no-cache',
-        'If-None-Match': ''  // Prevent 304 responses
-      }
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      cache: 'no-store'  // Prevent caching without CORS issues
     }
   )
 
@@ -143,10 +142,9 @@ export async function fetchRootFile(filename) {
   const response = await fetch(url, {
     headers: {
       'Authorization': `Bearer ${config.token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Cache-Control': 'no-cache',
-      'If-None-Match': ''  // Prevent 304 responses
-    }
+      'Accept': 'application/vnd.github.v3+json'
+    },
+    cache: 'no-store'  // Prevent caching without CORS issues
   })
 
   if (response.status === 404) {
