@@ -149,13 +149,15 @@ export function getClientStats(sprint) {
   sprint.goals.forEach(goal => {
     const client = goal.client || 'Brak klienta'
     if (!stats[client]) {
-      stats[client] = { goals: 0, tasks: 0, completedTasks: 0, sideGoals: 0 }
+      stats[client] = { goals: 0, tasks: 0, completedTasks: 0, inProgressTasks: 0, todoTasks: 0, sideGoals: 0 }
     }
     stats[client].goals++
 
     const goalTasks = getTasksForGoal(sprint, goal)
     stats[client].tasks += goalTasks.length
     stats[client].completedTasks += goalTasks.filter(t => t.status === 'Done').length
+    stats[client].inProgressTasks += goalTasks.filter(t => t.status === 'In Progress').length
+    stats[client].todoTasks += goalTasks.filter(t => t.status === 'To Do').length
   })
 
   // Include side goals in stats
@@ -163,13 +165,15 @@ export function getClientStats(sprint) {
   sideGoals.forEach(sideGoal => {
     const client = sideGoal.client || 'Brak klienta'
     if (!stats[client]) {
-      stats[client] = { goals: 0, tasks: 0, completedTasks: 0, sideGoals: 0 }
+      stats[client] = { goals: 0, tasks: 0, completedTasks: 0, inProgressTasks: 0, todoTasks: 0, sideGoals: 0 }
     }
     stats[client].sideGoals++
 
     const sgTasks = getTasksForSideGoal(sprint, sideGoal)
     stats[client].tasks += sgTasks.length
     stats[client].completedTasks += sgTasks.filter(t => t.status === 'Done').length
+    stats[client].inProgressTasks += sgTasks.filter(t => t.status === 'In Progress').length
+    stats[client].todoTasks += sgTasks.filter(t => t.status === 'To Do').length
   })
 
   return stats

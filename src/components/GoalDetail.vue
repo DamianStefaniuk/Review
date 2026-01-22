@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import ProgressBar from './ProgressBar.vue'
 import CommentEditor from './CommentEditor.vue'
 import { getTasksForGoal, getTasksForSideGoal } from '../services/dataLoader'
@@ -16,9 +16,19 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'addComment'])
+const emit = defineEmits(['close', 'addComment', 'updateComment', 'deleteComment'])
 
 const isSideGoal = computed(() => props.goal.isSideGoal === true)
+
+// Edit state
+const editingCommentId = ref(null)
+const editText = ref('')
+const editAuthor = ref('')
+const isUpdating = ref(false)
+
+// Delete state
+const deletingCommentId = ref(null)
+const isDeleting = ref(false)
 
 const tasks = computed(() => {
   if (isSideGoal.value) {
@@ -64,6 +74,61 @@ const statusColors = {
 const handleAddComment = (comment) => {
   emit('addComment', { goalId: props.goal.id, comment, isSideGoal: isSideGoal.value })
 }
+
+// Edit functions
+const startEditing = (comment) => {
+  editingCommentId.value = comment.id
+  editText.value = comment.text
+  editAuthor.value = comment.author || ''
+}
+
+const cancelEditing = () => {
+  editingCommentId.value = null
+  editText.value = ''
+  editAuthor.value = ''
+}
+
+const saveEdit = async () => {
+  if (!editText.value.trim()) return
+
+  isUpdating.value = true
+  emit('updateComment', {
+    goalId: props.goal.id,
+    commentId: editingCommentId.value,
+    updatedComment: {
+      text: editText.value.trim(),
+      author: editAuthor.value.trim()
+    },
+    isSideGoal: isSideGoal.value
+  })
+
+  // Reset state after emit (parent will handle the actual update)
+  editingCommentId.value = null
+  editText.value = ''
+  editAuthor.value = ''
+  isUpdating.value = false
+}
+
+// Delete functions
+const confirmDelete = (commentId) => {
+  deletingCommentId.value = commentId
+}
+
+const cancelDelete = () => {
+  deletingCommentId.value = null
+}
+
+const executeDelete = async () => {
+  isDeleting.value = true
+  emit('deleteComment', {
+    goalId: props.goal.id,
+    commentId: deletingCommentId.value,
+    isSideGoal: isSideGoal.value
+  })
+
+  deletingCommentId.value = null
+  isDeleting.value = false
+}
 </script>
 
 <template>
@@ -85,12 +150,6 @@ const handleAddComment = (comment) => {
           </div>
 
           <div class="flex items-center gap-4 text-sm text-gray-500">
-            <span
-              v-if="isSideGoal"
-              class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full"
-            >
-              Cel poboczny
-            </span>
             <span v-if="goal.client" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-full">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -122,8 +181,115 @@ const handleAddComment = (comment) => {
       </div>
     </div>
 
-    <!-- Tasks -->
+    <!-- Comments -->
     <div class="p-6 border-b border-gray-200">
+      <CommentEditor
+        v-if="sprint.status === 'active'"
+        @submit="handleAddComment"
+        class="mb-6"
+      />
+
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        Komentarze ({{ comments.length }})
+      </h3>
+
+      <div v-if="comments.length > 0" class="space-y-4">
+        <div
+          v-for="comment in comments"
+          :key="comment.id"
+          class="p-4 bg-gray-50 rounded-lg"
+        >
+          <!-- Edit mode -->
+          <div v-if="editingCommentId === comment.id" class="space-y-3">
+            <input
+              v-model="editAuthor"
+              type="text"
+              placeholder="Autor (Opcjonalne)"
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+            <textarea
+              v-model="editText"
+              rows="3"
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+            ></textarea>
+            <div class="flex justify-end gap-2">
+              <button
+                @click="cancelEditing"
+                class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Anuluj
+              </button>
+              <button
+                @click="saveEdit"
+                :disabled="!editText.trim() || isUpdating"
+                class="px-3 py-1.5 text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Zapisz
+              </button>
+            </div>
+          </div>
+
+          <!-- View mode -->
+          <template v-else>
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span v-if="comment.author" class="font-medium text-gray-900">{{ comment.author }}</span>
+                <span class="text-xs text-gray-500">{{ formatDate(comment.createdAt) }}</span>
+                <span v-if="comment.updatedAt" class="text-xs text-gray-400">(edytowano)</span>
+              </div>
+
+              <!-- Edit/Delete buttons -->
+              <div v-if="sprint.status === 'active'" class="flex items-center gap-1">
+                <button
+                  @click="startEditing(comment)"
+                  class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                  title="Edytuj"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button
+                  @click="confirmDelete(comment.id)"
+                  class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                  title="Usuń"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ comment.text }}</p>
+
+            <!-- Delete confirmation -->
+            <div v-if="deletingCommentId === comment.id" class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p class="text-sm text-red-700 mb-2">Czy na pewno chcesz usunąć ten komentarz?</p>
+              <div class="flex justify-end gap-2">
+                <button
+                  @click="cancelDelete"
+                  class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Anuluj
+                </button>
+                <button
+                  @click="executeDelete"
+                  :disabled="isDeleting"
+                  class="px-3 py-1.5 text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Usuń
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <p v-else class="text-sm text-gray-500 text-center py-4">Brak komentarzy</p>
+    </div>
+
+    <!-- Tasks -->
+    <div class="p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-4 capitalize">
         {{ pluralizeWithCount(tasks.length, POLISH_NOUNS.task) }}
       </h3>
@@ -201,32 +367,6 @@ const handleAddComment = (comment) => {
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Comments -->
-    <div class="p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">
-        Komentarze ({{ comments.length }})
-      </h3>
-
-      <div v-if="comments.length > 0" class="space-y-4 mb-6">
-        <div
-          v-for="comment in comments"
-          :key="comment.id"
-          class="p-4 bg-gray-50 rounded-lg"
-        >
-          <div class="flex items-center justify-between mb-2">
-            <span class="font-medium text-gray-900">{{ comment.author }}</span>
-            <span class="text-xs text-gray-500">{{ formatDate(comment.createdAt) }}</span>
-          </div>
-          <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ comment.text }}</p>
-        </div>
-      </div>
-
-      <CommentEditor
-        v-if="sprint.status === 'active'"
-        @submit="handleAddComment"
-      />
     </div>
   </div>
 </template>

@@ -20,8 +20,15 @@ const clientList = computed(() => {
       goals: data.goals || 0,
       tasks: data.tasks || 0,
       completedTasks: data.completedTasks || 0,
+      inProgressTasks: data.inProgressTasks || 0,
+      todoTasks: data.todoTasks || 0,
       sideGoals: data.sideGoals || 0,
-      progress: data.tasks > 0 ? Math.round((data.completedTasks / data.tasks) * 100) : 0
+      taskStats: {
+        done: data.completedTasks || 0,
+        inProgress: data.inProgressTasks || 0,
+        todo: data.todoTasks || 0,
+        total: data.tasks || 0
+      }
     }))
     .sort((a, b) => b.tasks - a.tasks)
 })
@@ -90,7 +97,7 @@ const totalStats = computed(() => {
               <div class="text-xs text-gray-500">ukończonych</div>
             </div>
           </div>
-          <ProgressBar :percent="client.progress" size="sm" />
+          <ProgressBar :task-stats="client.taskStats" size="sm" />
         </div>
       </div>
 

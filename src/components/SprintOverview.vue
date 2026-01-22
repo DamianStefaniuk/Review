@@ -61,7 +61,7 @@ const statusBadge = computed(() => {
         </div>
         <div class="text-right">
           <div class="text-3xl font-bold text-primary-600">{{ stats.avgProgress }}%</div>
-          <div class="text-sm text-gray-500">średni postęp</div>
+          <div class="text-sm text-gray-500">Stopień ukończenia</div>
         </div>
       </div>
 
@@ -90,7 +90,7 @@ const statusBadge = computed(() => {
 
     <!-- Goals list -->
     <div class="p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Cele sprintu</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4 capitalize">{{ pluralize(filteredGoals.length, POLISH_NOUNS.goal) }}</h3>
 
       <div v-if="filteredGoals.length === 0" class="text-center py-8 text-gray-500">
         Brak celów dla wybranego klienta

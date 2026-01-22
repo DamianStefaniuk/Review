@@ -8,12 +8,14 @@ const authorName = ref(localStorage.getItem('reviewAuthor') || '')
 const isSubmitting = ref(false)
 
 const handleSubmit = async () => {
-  if (!commentText.value.trim() || !authorName.value.trim()) return
+  if (!commentText.value.trim()) return
 
   isSubmitting.value = true
 
-  // Save author name for future use
-  localStorage.setItem('reviewAuthor', authorName.value)
+  // Save author name for future use if provided
+  if (authorName.value.trim()) {
+    localStorage.setItem('reviewAuthor', authorName.value)
+  }
 
   emit('submit', {
     text: commentText.value.trim(),
@@ -31,7 +33,7 @@ const handleSubmit = async () => {
       <input
         v-model="authorName"
         type="text"
-        placeholder="Twoje imię"
+        placeholder="Twoje imię (Opcjonalne)"
         class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
       />
     </div>
@@ -46,7 +48,7 @@ const handleSubmit = async () => {
     <div class="px-3 pb-3 flex justify-end">
       <button
         @click="handleSubmit"
-        :disabled="!commentText.trim() || !authorName.trim() || isSubmitting"
+        :disabled="!commentText.trim() || isSubmitting"
         class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         <span v-if="isSubmitting" class="flex items-center gap-2">

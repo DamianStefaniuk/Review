@@ -450,6 +450,104 @@ export async function addCommentToRepo(sprintId, goalId, comment, isSideGoal = f
 }
 
 /**
+ * Update a comment in a goal in repository
+ * @param {number} sprintId
+ * @param {number|string} goalId
+ * @param {string} commentId
+ * @param {object} updatedComment - { text, author }
+ * @param {boolean} isSideGoal
+ * @returns {Promise<boolean>}
+ */
+export async function updateCommentInRepo(sprintId, goalId, commentId, updatedComment, isSideGoal = false) {
+  const filename = `sprint-${sprintId}.json`
+  const result = await fetchRepoFile(filename)
+
+  if (!result) {
+    throw new Error(`Sprint ${sprintId} not found in repository`)
+  }
+
+  const sprintData = result.content
+
+  // Find the goal in main goals or side goals
+  let goal
+  if (isSideGoal) {
+    goal = sprintData.sideGoals?.find(g => g.id === goalId)
+    if (!goal) {
+      throw new Error(`Side goal ${goalId} not found in sprint ${sprintId}`)
+    }
+  } else {
+    goal = sprintData.goals.find(g => g.id === goalId)
+    if (!goal) {
+      throw new Error(`Goal ${goalId} not found in sprint ${sprintId}`)
+    }
+  }
+
+  const commentIndex = goal.comments?.findIndex(c => c.id === commentId)
+  if (commentIndex === -1 || commentIndex === undefined) {
+    throw new Error(`Comment ${commentId} not found in goal ${goalId}`)
+  }
+
+  // Update the comment, preserving id and createdAt
+  goal.comments[commentIndex] = {
+    ...goal.comments[commentIndex],
+    text: updatedComment.text,
+    author: updatedComment.author,
+    updatedAt: new Date().toISOString()
+  }
+
+  // Save updated sprint data
+  await updateRepoFile(filename, sprintData, result.sha)
+
+  return true
+}
+
+/**
+ * Delete a comment from a goal in repository
+ * @param {number} sprintId
+ * @param {number|string} goalId
+ * @param {string} commentId
+ * @param {boolean} isSideGoal
+ * @returns {Promise<boolean>}
+ */
+export async function deleteCommentFromRepo(sprintId, goalId, commentId, isSideGoal = false) {
+  const filename = `sprint-${sprintId}.json`
+  const result = await fetchRepoFile(filename)
+
+  if (!result) {
+    throw new Error(`Sprint ${sprintId} not found in repository`)
+  }
+
+  const sprintData = result.content
+
+  // Find the goal in main goals or side goals
+  let goal
+  if (isSideGoal) {
+    goal = sprintData.sideGoals?.find(g => g.id === goalId)
+    if (!goal) {
+      throw new Error(`Side goal ${goalId} not found in sprint ${sprintId}`)
+    }
+  } else {
+    goal = sprintData.goals.find(g => g.id === goalId)
+    if (!goal) {
+      throw new Error(`Goal ${goalId} not found in sprint ${sprintId}`)
+    }
+  }
+
+  const commentIndex = goal.comments?.findIndex(c => c.id === commentId)
+  if (commentIndex === -1 || commentIndex === undefined) {
+    throw new Error(`Comment ${commentId} not found in goal ${goalId}`)
+  }
+
+  // Remove the comment
+  goal.comments.splice(commentIndex, 1)
+
+  // Save updated sprint data
+  await updateRepoFile(filename, sprintData, result.sha)
+
+  return true
+}
+
+/**
  * Create a new file in repository (alias for updateRepoFile without SHA)
  * @param {string} filename
  * @param {any} content

@@ -237,7 +237,7 @@ const getGoalTasks = (goal) => {
               </div>
               <div class="bg-white/10 rounded-xl p-6">
                 <div class="text-4xl font-bold">{{ stats.avgProgress }}%</div>
-                <div class="text-white/60 mt-2">Średni postęp</div>
+                <div class="text-white/60 mt-2">Stopień ukończenia</div>
               </div>
             </div>
           </div>
@@ -304,7 +304,7 @@ const getGoalTasks = (goal) => {
                     :key="comment.id"
                     class="p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20"
                   >
-                    <div class="font-medium text-yellow-400 mb-1">{{ comment.author }}</div>
+                    <div v-if="comment.author" class="font-medium text-yellow-400 mb-1">{{ comment.author }}</div>
                     <div class="text-sm text-white/80">{{ comment.text }}</div>
                   </div>
                 </div>

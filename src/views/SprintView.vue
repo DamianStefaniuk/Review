@@ -2,7 +2,7 @@
 import { ref, watch, onMounted, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadSprint, loadCurrentSprintInfo } from '../services/dataLoader'
-import { addCommentToRepo, isRepoDataConfigured } from '../services/repoDataService'
+import { addCommentToRepo, updateCommentInRepo, deleteCommentFromRepo, isRepoDataConfigured } from '../services/repoDataService'
 import { useAuthStore } from '../stores/authStore'
 import SprintOverview from '../components/SprintOverview.vue'
 import GoalDetail from '../components/GoalDetail.vue'
@@ -88,6 +88,67 @@ const handleAddComment = async ({ goalId, comment, isSideGoal }) => {
     } catch (err) {
       console.error('Failed to save comment to Repository:', err)
       // Comment is still added locally
+    }
+  }
+}
+
+const handleUpdateComment = async ({ goalId, commentId, comment, isSideGoal }) => {
+  if (!sprint.value) return
+
+  // Find goal in main goals or side goals
+  let goal
+  if (isSideGoal) {
+    goal = sprint.value.sideGoals?.find(g => g.id === goalId)
+  } else {
+    goal = sprint.value.goals.find(g => g.id === goalId)
+  }
+  if (!goal) return
+
+  // Find and update comment locally
+  const commentIndex = goal.comments?.findIndex(c => c.id === commentId)
+  if (commentIndex === -1 || commentIndex === undefined) return
+
+  goal.comments[commentIndex] = {
+    ...goal.comments[commentIndex],
+    text: comment.text,
+    author: comment.author,
+    updatedAt: new Date().toISOString()
+  }
+
+  // Try to save to Repository if configured
+  if (isRepoDataConfigured()) {
+    try {
+      await updateCommentInRepo(sprint.value.id, goalId, commentId, comment, isSideGoal)
+    } catch (err) {
+      console.error('Failed to update comment in Repository:', err)
+    }
+  }
+}
+
+const handleDeleteComment = async ({ goalId, commentId, isSideGoal }) => {
+  if (!sprint.value) return
+
+  // Find goal in main goals or side goals
+  let goal
+  if (isSideGoal) {
+    goal = sprint.value.sideGoals?.find(g => g.id === goalId)
+  } else {
+    goal = sprint.value.goals.find(g => g.id === goalId)
+  }
+  if (!goal) return
+
+  // Find and remove comment locally
+  const commentIndex = goal.comments?.findIndex(c => c.id === commentId)
+  if (commentIndex === -1 || commentIndex === undefined) return
+
+  goal.comments.splice(commentIndex, 1)
+
+  // Try to save to Repository if configured
+  if (isRepoDataConfigured()) {
+    try {
+      await deleteCommentFromRepo(sprint.value.id, goalId, commentId, isSideGoal)
+    } catch (err) {
+      console.error('Failed to delete comment from Repository:', err)
     }
   }
 }
@@ -308,6 +369,8 @@ onMounted(() => {
               :sprint="sprint"
               @close="handleCloseGoal"
               @add-comment="handleAddComment"
+              @update-comment="handleUpdateComment"
+              @delete-comment="handleDeleteComment"
             />
             <div v-else class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
               <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
