@@ -28,12 +28,29 @@ const filteredSideGoals = computed(() => {
 const completedCount = computed(() =>
   filteredSideGoals.value.filter(sg => sg.completed).length
 )
+
+const allSideGoalsCompleted = computed(() =>
+  props.sideGoals.length > 0 && props.sideGoals.every(sg => sg.completed)
+)
+
+const headerGradient = computed(() => {
+  if (allSideGoalsCompleted.value) {
+    // Wszystkie cele poboczne osiągnięte - zielony (intensywniejszy)
+    return 'bg-gradient-to-r from-green-100 to-white'
+  }
+  if (props.sprint.status === 'active') {
+    // Sprint aktywny, nie wszystkie cele - niebieski (intensywniejszy)
+    return 'bg-gradient-to-r from-primary-100 to-white'
+  }
+  // Sprint zamknięty przed ukończeniem - czerwony (intensywniejszy)
+  return 'bg-gradient-to-r from-red-100 to-white'
+})
 </script>
 
 <template>
   <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     <!-- Header -->
-    <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-white">
+    <div class="px-6 py-5 border-b border-gray-200" :class="headerGradient">
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-semibold text-gray-900 capitalize">{{ pluralize(filteredSideGoals.length, POLISH_NOUNS.sideGoal) }}</h3>
         <span class="text-sm text-gray-500">
@@ -53,8 +70,10 @@ const completedCount = computed(() =>
           v-for="sideGoal in filteredSideGoals"
           :key="sideGoal.id"
           @click="emit('selectGoal', { ...sideGoal, isSideGoal: true })"
-          class="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-amber-300 hover:bg-amber-50/50 transition-all group"
-          :class="{ 'bg-green-50 border-green-200': sideGoal.completed }"
+          class="w-full text-left p-4 rounded-lg border transition-all group"
+          :class="sideGoal.completed
+            ? 'bg-green-50 border-green-200 hover:bg-green-100 hover:border-green-300'
+            : 'border-gray-200 hover:border-primary-300 hover:bg-primary-50/50'"
         >
           <div class="flex items-start justify-between gap-4">
             <div class="flex-1 min-w-0">
@@ -69,7 +88,7 @@ const completedCount = computed(() =>
                 </span>
                 <span
                   v-else
-                  class="flex-shrink-0 w-5 h-5 rounded-full border-2 border-amber-400 group-hover:border-amber-500"
+                  class="flex-shrink-0 w-5 h-5 rounded-full border-2 border-gray-300 group-hover:border-primary-400"
                 ></span>
                 <h4 class="font-medium text-gray-900 truncate">{{ sideGoal.title }}</h4>
               </div>

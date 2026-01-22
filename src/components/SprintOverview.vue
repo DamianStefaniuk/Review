@@ -38,12 +38,39 @@ const statusBadge = computed(() => {
   }
   return { text: 'Zamknięty', class: 'bg-gray-100 text-gray-600' }
 })
+
+const allGoalsCompleted = computed(() =>
+  stats.value.totalGoals > 0 && stats.value.completedGoals === stats.value.totalGoals
+)
+
+const headerGradient = computed(() => {
+  if (allGoalsCompleted.value) {
+    // Wszystkie cele główne osiągnięte - zielony
+    return 'bg-gradient-to-r from-green-50 to-white'
+  }
+  if (props.sprint.status === 'active') {
+    // Sprint aktywny, nie wszystkie cele - niebieski
+    return 'bg-gradient-to-r from-primary-50 to-white'
+  }
+  // Sprint zamknięty przed ukończeniem - czerwony
+  return 'bg-gradient-to-r from-red-50 to-white'
+})
+
+const progressColor = computed(() => {
+  if (allGoalsCompleted.value) {
+    return 'text-green-600'
+  }
+  if (props.sprint.status === 'active') {
+    return 'text-primary-600'
+  }
+  return 'text-red-600'
+})
 </script>
 
 <template>
   <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     <!-- Header -->
-    <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-white">
+    <div class="px-6 py-5 border-b border-gray-200" :class="headerGradient">
       <div class="flex items-start justify-between">
         <div>
           <div class="flex items-center gap-3">
@@ -60,7 +87,7 @@ const statusBadge = computed(() => {
           </p>
         </div>
         <div class="text-right">
-          <div class="text-3xl font-bold text-primary-600">{{ stats.avgProgress }}%</div>
+          <div class="text-3xl font-bold" :class="progressColor">{{ stats.avgProgress }}%</div>
           <div class="text-sm text-gray-500">Stopień ukończenia</div>
         </div>
       </div>
@@ -101,8 +128,10 @@ const statusBadge = computed(() => {
           v-for="goal in filteredGoals"
           :key="goal.id"
           @click="emit('selectGoal', goal)"
-          class="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50/50 transition-all group"
-          :class="{ 'bg-green-50 border-green-200': goal.completed }"
+          class="w-full text-left p-4 rounded-lg border transition-all group"
+          :class="goal.completed
+            ? 'bg-green-50 border-green-200 hover:bg-green-100 hover:border-green-300'
+            : 'border-gray-200 hover:border-primary-300 hover:bg-primary-50/50'"
         >
           <div class="flex items-start justify-between gap-4">
             <div class="flex-1 min-w-0">
