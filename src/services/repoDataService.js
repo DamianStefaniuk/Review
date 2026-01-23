@@ -419,3 +419,94 @@ export async function updateCurrentSprintInfoInRepo(sprintId, isActive) {
 export async function createRepoFile(filename, content) {
   return updateRepoFile(filename, content, null)
 }
+
+/**
+ * Upload a binary file to the repository (for media files)
+ * @param {string} path - Full path in repository (e.g., "media/sprint-1/file.png")
+ * @param {string} base64Content - Base64 encoded content
+ * @param {string} commitMessage - Commit message
+ * @returns {Promise<{sha: string}>}
+ */
+export async function uploadBinaryFile(path, base64Content, commitMessage = null) {
+  const config = await getRepoConfig()
+  if (!config) {
+    throw new Error('Repository not configured - user not authenticated')
+  }
+
+  const message = commitMessage || `Upload ${path.split('/').pop()}`
+
+  const response = await fetch(
+    `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${path}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${config.token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      body: JSON.stringify({
+        message,
+        content: base64Content
+      })
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(`Failed to upload file ${path}: ${error.message || response.status}`)
+  }
+
+  const result = await response.json()
+  return { sha: result.content.sha }
+}
+
+/**
+ * Fetch a binary file from the repository as Blob
+ * @param {string} path - Full path in repository
+ * @returns {Promise<Blob>}
+ */
+export async function fetchBinaryFile(path) {
+  const config = await getRepoConfig()
+  if (!config) {
+    throw new Error('Repository not configured - user not authenticated')
+  }
+
+  const url = `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${path}`
+
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${config.token}`,
+      'Accept': 'application/vnd.github.v3+json'
+    },
+    cache: 'no-store'
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch file ${path}: ${response.status}`)
+  }
+
+  const data = await response.json()
+
+  // Decode base64 content
+  const cleanBase64 = data.content.replace(/\n/g, '')
+  const binaryString = atob(cleanBase64)
+  const bytes = new Uint8Array(binaryString.length)
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i)
+  }
+
+  // Determine MIME type from extension
+  const extension = path.split('.').pop().toLowerCase()
+  const mimeTypes = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'mp4': 'video/mp4',
+    'webm': 'video/webm'
+  }
+  const mimeType = mimeTypes[extension] || 'application/octet-stream'
+
+  return new Blob([bytes], { type: mimeType })
+}

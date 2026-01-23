@@ -20,6 +20,7 @@ Aplikacja webowa do prezentacji i archiwizacji review sprintów zespołu. Integr
 - [Używanie aplikacji](#używanie-aplikacji)
 - [Struktura projektu](#struktura-projektu)
 - [Kolejka operacji i obsługa konfliktów](#kolejka-operacji-i-obsługa-konfliktów)
+- [Upload mediów (zdjęcia, GIFy, video)](#upload-mediów-zdjęcia-gify-video)
 - [Rozwiązywanie problemów](#rozwiązywanie-problemów)
 
 ---
@@ -38,6 +39,7 @@ Aplikacja webowa do prezentacji i archiwizacji review sprintów zespołu. Integr
 - **Przechowywanie danych w prywatnym repozytorium** - komentarze i dane sprintow przechowywane w repozytorium Review-Data
 - **Synchronizacja z Jira na zadanie** - przycisk wyzwalajacy GitHub Actions workflow
 - **Zamykanie sprintu** - mozliwosc zamkniecia sprintu i utworzenia nowego z poziomu UI
+- **Upload mediów** - możliwość dodawania zdjęć, GIFów i filmów do komentarzy, osiągnięć i planów na następny sprint
 
 ---
 
@@ -531,6 +533,10 @@ sprint-review/
 │   │   ├── JiraSyncButton.vue # Przycisk synchronizacji z Jira
 │   │   ├── CloseSprintButton.vue # Przycisk zamykania sprintu
 │   │   ├── DataRepoStatus.vue # Status polaczenia z repozytorium danych
+│   │   ├── MediaUploader.vue  # Komponent uploadu mediów (drag&drop, paste, picker)
+│   │   ├── CommentEditor.vue  # Edytor komentarzy z obsługą mediów
+│   │   ├── AchievementsList.vue # Lista osiągnięć z obsługą mediów
+│   │   ├── NextSprintPlans.vue # Plany na następny sprint z obsługą mediów
 │   │   └── ...                # Pozostałe komponenty
 │   ├── views/                 # Widoki stron
 │   ├── services/              # Serwisy (API)
@@ -539,9 +545,13 @@ sprint-review/
 │   │   ├── repoDataService.js # Operacje na repozytorium danych (niski poziom)
 │   │   ├── operationQueueService.js # Kolejka operacji z retry (SHA conflicts)
 │   │   ├── githubActionsService.js # Wyzwalanie GitHub Actions
+│   │   ├── mediaService.js    # Upload i pobieranie mediów z GitHub
 │   │   └── dataLoader.js      # Ładowanie danych (Repository + fallback)
 │   ├── composables/           # Vue composables
-│   │   └── useOperationQueue.js # Composable do kolejki operacji
+│   │   └── useOperationQueue.js # Composable do kolejki operacji (w tym queueMediaUpload)
+│   ├── utils/                 # Narzędzia pomocnicze
+│   │   ├── pluralize.ts       # Odmiana polskich rzeczowników
+│   │   └── markdownMedia.js   # Renderowanie Markdown z obsługą mediów
 │   └── assets/                # Style CSS
 │
 └── public/                    # Pliki statyczne
@@ -575,10 +585,15 @@ Aplikacja wykorzystuje **dwa różne tokeny** do różnych celów:
 ```
 Review-Data/
 ├── current-sprint.json     # W KATALOGU GŁÓWNYM (root) - wskaźnik na aktywny sprint
-└── sprints/                # Podkatalog na pliki sprintów
-    ├── sprint-8663.json    # Dane sprintu 8663
-    ├── sprint-8664.json    # Dane sprintu 8664
-    └── ...                 # Kolejne sprinty
+├── sprints/                # Podkatalog na pliki sprintów
+│   ├── sprint-8663.json    # Dane sprintu 8663
+│   ├── sprint-8664.json    # Dane sprintu 8664
+│   └── ...                 # Kolejne sprinty
+└── media/                  # Podkatalog na pliki mediów
+    └── sprint-{id}/        # Media pogrupowane według sprintu
+        ├── 1706012345678-abc123.png
+        ├── 1706012345999-def456.gif
+        └── 1706012346123-ghi789.mp4
 ```
 
 **Ważne:**
@@ -751,19 +766,94 @@ Aplikacja używa systemu kolejki operacji do bezpiecznej obsługi równoległych
 
 ### Operacje objęte kolejką
 
-| Operacja | Retry | Priorytet |
-|----------|-------|-----------|
-| Dodawanie komentarzy | 7 prób | Normalny |
-| Edycja komentarzy | 7 prób | Normalny |
-| Usuwanie komentarzy | 7 prób | Normalny |
-| Zapis osiągnięć | 7 prób | Normalny |
-| Zapis planów następnego sprintu | 7 prób | Normalny |
-| Zamknięcie sprintu | 7 prób | Krytyczny |
+| Operacja | Retry | Priorytet | Timeout |
+|----------|-------|-----------|---------|
+| Dodawanie komentarzy | 7 prób | Normalny | 30s |
+| Edycja komentarzy | 7 prób | Normalny | 30s |
+| Usuwanie komentarzy | 7 prób | Normalny | 30s |
+| Zapis osiągnięć | 7 prób | Normalny | 30s |
+| Zapis planów następnego sprintu | 7 prób | Normalny | 30s |
+| Upload mediów | 7 prób | Normalny | 120s |
+| Zamknięcie sprintu | 7 prób | Krytyczny | 60s |
 
 ### Komunikaty dla użytkownika
 
 - **Podczas retry**: "Konflikt danych, ponawiam (2/7)..."
 - **Po wyczerpaniu prób**: "Nie udało się zapisać po wielu próbach. Odśwież stronę."
+
+---
+
+## Upload mediów (zdjęcia, GIFy, video)
+
+Aplikacja umożliwia dodawanie mediów (zdjęć, GIFów, filmów) do sekcji Markdown:
+- **Komentarze** w celach głównych i pobocznych
+- **Osiągnięcia dodatkowe**
+- **Plany na następny sprint**
+
+### Obsługiwane formaty
+
+| Typ | Formaty | Maksymalny rozmiar |
+|-----|---------|-------------------|
+| Obrazy | JPG, PNG, GIF, WebP | 10 MB |
+| Video | MP4, WebM | 50 MB |
+
+### Sposoby dodawania mediów
+
+1. **Drag & drop** - przeciągnij plik na obszar uploadu
+2. **Wklejanie (Ctrl+V)** - wklej obraz ze schowka
+3. **Wybór pliku** - kliknij w obszar uploadu i wybierz plik
+
+### Jak dodać media
+
+1. **Zaloguj się** przez GitHub (wymagane)
+2. **Wejdź w tryb edycji** (komentarz, osiągnięcia lub plany)
+3. **Kliknij przycisk "Media"** lub "Dodaj media"
+4. **Wybierz plik** jedną z powyższych metod
+5. **Podgląd** - sprawdź podgląd przed wysłaniem
+6. **Kliknij "Wyślij"** - plik zostanie przesłany do GitHub
+7. **Markdown automatycznie wstawiony** - składnia obrazu/video zostanie dodana do tekstu
+
+### Przechowywanie mediów
+
+Media są przechowywane w repozytorium GitHub w strukturze:
+
+```
+Review-Data/
+├── sprints/
+│   └── sprint-{id}.json
+└── media/
+    └── sprint-{id}/
+        ├── 1706012345678-abc123.png
+        ├── 1706012345999-def456.gif
+        └── 1706012346123-ghi789.mp4
+```
+
+### Składnia Markdown dla mediów
+
+```markdown
+<!-- Obrazy -->
+![opis](media/sprint-8663/1706012345678-abc123.png)
+
+<!-- GIFy (tak samo jak obrazy) -->
+![animacja](media/sprint-8663/1706012345999-def456.gif)
+
+<!-- Video -->
+![video](media/sprint-8663/1706012346123-ghi789.mp4)
+```
+
+### Wyświetlanie mediów
+
+- Media są **automatycznie ładowane** przy wyświetlaniu treści Markdown
+- Wymagane jest **zalogowanie** do przeglądania mediów (pobierane przez GitHub API z tokenem użytkownika)
+- Media są **cachowane** w przeglądarce dla lepszej wydajności
+- **Responsywne wyświetlanie** - obrazy i video dostosowują się do szerokości kontenera
+
+### Ograniczenia
+
+- Media są dostępne **tylko dla zalogowanych użytkowników** (wymóg autoryzacji GitHub API)
+- Brak **galerii mediów** - media są wstawiane bezpośrednio do treści Markdown
+- Brak **automatycznej kompresji** - pliki są przesyłane w oryginalnej jakości
+- Timeout uploadu: **120 sekund** dla dużych plików
 
 ---
 

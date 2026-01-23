@@ -12,8 +12,16 @@ import {
   createRepoFile,
   fetchRootFile,
   updateRootFile,
-  loadSprintFromRepo
+  loadSprintFromRepo,
+  uploadBinaryFile
 } from '../services/repoDataService'
+import {
+  validateFile,
+  fileToBase64,
+  generateFileName,
+  getMediaPath,
+  getFileCategory
+} from '../services/mediaService'
 
 export function useOperationQueue() {
   // Reactive state
@@ -254,6 +262,42 @@ export function useOperationQueue() {
   }
 
   // ==========================================
+  // Media Upload Operations
+  // ==========================================
+
+  async function queueMediaUpload(sprintId, file, callbacks = {}) {
+    // Validate file before queuing
+    const validation = validateFile(file)
+    if (!validation.valid) {
+      throw new Error(validation.error)
+    }
+
+    const fileName = generateFileName(file.name, sprintId)
+    const path = getMediaPath(sprintId, fileName)
+
+    return queueOperation({
+      type: 'mediaUpload',
+      key: `media-upload-${sprintId}-${fileName}`,
+      priority: PRIORITY.NORMAL,
+      timeout: 120000, // 120 seconds for large files
+      execute: async () => {
+        // Convert file to base64
+        const base64Content = await fileToBase64(file)
+
+        // Upload to GitHub
+        await uploadBinaryFile(path, base64Content, `Upload media: ${fileName}`)
+
+        return {
+          path,
+          type: getFileCategory(file),
+          fileName
+        }
+      },
+      ...callbacks
+    })
+  }
+
+  // ==========================================
   // Sprint Lifecycle Operations
   // ==========================================
 
@@ -351,6 +395,9 @@ export function useOperationQueue() {
     // Content operations
     queueSaveAchievements,
     queueSaveNextSprintPlans,
+
+    // Media operations
+    queueMediaUpload,
 
     // Sprint lifecycle
     queueCloseSprint

@@ -1,11 +1,13 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import ProgressBar from './ProgressBar.vue'
 import CommentEditor from './CommentEditor.vue'
+import MediaUploader from './MediaUploader.vue'
 import { getTasksForGoal, getTasksForSideGoal } from '../services/dataLoader'
 import { pluralize, pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
+import { renderMarkdownWithMedia, processMediaUrls, clearBlobCache, generateMediaMarkdown } from '../utils/markdownMedia'
 
 const props = defineProps({
   goal: {
@@ -26,6 +28,11 @@ const isSideGoal = computed(() => props.goal.isSideGoal === true)
 const editingCommentId = ref(null)
 const editText = ref('')
 const isUpdating = ref(false)
+const showEditMediaUploader = ref(false)
+const editTextareaRef = ref(null)
+
+// Comment content refs for media processing
+const commentsContainerRef = ref(null)
 
 // Computed for edit preview
 const editPreview = computed(() => {
@@ -86,11 +93,13 @@ const handleAddComment = (comment) => {
 const startEditing = (comment) => {
   editingCommentId.value = comment.id
   editText.value = comment.text
+  showEditMediaUploader.value = false
 }
 
 const cancelEditing = () => {
   editingCommentId.value = null
   editText.value = ''
+  showEditMediaUploader.value = false
 }
 
 const saveEdit = async () => {
@@ -110,13 +119,33 @@ const saveEdit = async () => {
   editingCommentId.value = null
   editText.value = ''
   isUpdating.value = false
+  showEditMediaUploader.value = false
 }
 
-// Helper function to render markdown for comments
+// Helper function to render markdown for comments with media support
 const renderMarkdown = (text) => {
   if (!text) return ''
-  return DOMPurify.sanitize(marked(text))
+  return renderMarkdownWithMedia(text)
 }
+
+// Process media URLs after comments render
+const processCommentsMedia = async () => {
+  await nextTick()
+  if (commentsContainerRef.value) {
+    processMediaUrls(commentsContainerRef.value)
+  }
+}
+
+// Watch for comment changes to process media
+watch(comments, processCommentsMedia, { deep: true })
+
+onMounted(() => {
+  processCommentsMedia()
+})
+
+onUnmounted(() => {
+  clearBlobCache()
+})
 
 // Delete functions
 const confirmDelete = (commentId) => {
@@ -137,6 +166,47 @@ const executeDelete = async () => {
 
   deletingCommentId.value = null
   isDeleting.value = false
+}
+
+// Media upload for edit mode
+const toggleEditMediaUploader = () => {
+  showEditMediaUploader.value = !showEditMediaUploader.value
+}
+
+const handleEditMediaUpload = (result) => {
+  const markdown = generateMediaMarkdown(result)
+  insertAtEditCursor(markdown)
+  showEditMediaUploader.value = false
+}
+
+const handleEditMediaError = (error) => {
+  console.error('Media upload error:', error)
+}
+
+const insertAtEditCursor = (text) => {
+  const textarea = editTextareaRef.value
+  if (!textarea) {
+    editText.value += '\n' + text
+    return
+  }
+
+  const start = textarea.selectionStart
+  const end = textarea.selectionEnd
+  const before = editText.value.substring(0, start)
+  const after = editText.value.substring(end)
+
+  const needsNewlineBefore = before.length > 0 && !before.endsWith('\n')
+  const needsNewlineAfter = after.length > 0 && !after.startsWith('\n')
+
+  const insertText = (needsNewlineBefore ? '\n' : '') + text + (needsNewlineAfter ? '\n' : '')
+
+  editText.value = before + insertText + after
+
+  const newPosition = start + insertText.length
+  textarea.focus()
+  setTimeout(() => {
+    textarea.setSelectionRange(newPosition, newPosition)
+  }, 0)
 }
 </script>
 
@@ -214,6 +284,7 @@ const executeDelete = async () => {
     <div class="p-6 border-b border-gray-200">
       <CommentEditor
         v-if="sprint.status === 'active'"
+        :sprint-id="sprint.id"
         @submit="handleAddComment"
         class="mb-6"
       />
@@ -222,7 +293,7 @@ const executeDelete = async () => {
         Komentarze ({{ comments.length }})
       </h3>
 
-      <div v-if="comments.length > 0" class="space-y-4">
+      <div v-if="comments.length > 0" ref="commentsContainerRef" class="space-y-4">
         <div
           v-for="comment in comments"
           :key="comment.id"
@@ -230,7 +301,31 @@ const executeDelete = async () => {
         >
           <!-- Edit mode -->
           <div v-if="editingCommentId === comment.id" class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-gray-500">Edycja komentarza</span>
+              <button
+                @click="toggleEditMediaUploader"
+                type="button"
+                class="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Media
+              </button>
+            </div>
+
+            <!-- Media Uploader for edit -->
+            <div v-if="showEditMediaUploader">
+              <MediaUploader
+                :sprint-id="sprint.id"
+                @upload="handleEditMediaUpload"
+                @error="handleEditMediaError"
+              />
+            </div>
+
             <textarea
+              ref="editTextareaRef"
               v-model="editText"
               rows="3"
               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none font-mono"
