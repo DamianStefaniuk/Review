@@ -432,6 +432,13 @@ def main():
     existing_data = existing_file['content'] if existing_file else None
     existing_sha = existing_file['sha'] if existing_file else None
 
+    # Check if sprint is closed locally - skip sync to preserve historical data
+    if existing_data and existing_data.get('status') == 'closed':
+        logger.info(f"Sprint {sprint_id} is closed locally (closedAt: {existing_data.get('closedAt')}). "
+                   "Skipping sync to preserve historical task/goal data.")
+        logger.info("Only manually editable fields (achievements, nextSprintPlans, comments) can be changed via UI.")
+        sys.exit(0)
+
     # Build sprint data
     sprint_data = build_sprint_data(sprint, tasks, existing_data)
 

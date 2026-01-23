@@ -286,11 +286,23 @@ onMounted(() => {
           <!-- Data repo status (only for authenticated users) -->
           <DataRepoStatus v-if="authStore.isAuthenticated" />
 
-          <!-- Jira sync button (only for authenticated users) -->
+          <!-- Jira sync button (only for authenticated users and active sprints) -->
           <JiraSyncButton
-            v-if="authStore.isAuthenticated"
+            v-if="authStore.isAuthenticated && sprint.status === 'active'"
             @sync-complete="handleSyncComplete"
           />
+
+          <!-- Info for closed sprints -->
+          <span
+            v-if="authStore.isAuthenticated && sprint.status === 'closed'"
+            class="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 bg-gray-100 rounded-lg"
+            title="Zamknięty sprint jest zarchiwizowany - dane zadań i celów nie są aktualizowane z Jira"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m10-6V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2h4" />
+            </svg>
+            Zarchiwizowany
+          </span>
 
           <!-- Close sprint button (only for authenticated users and active sprints) -->
           <CloseSprintButton

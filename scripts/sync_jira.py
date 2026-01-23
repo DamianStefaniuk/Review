@@ -397,6 +397,13 @@ def main():
     # Load existing sprint data to preserve comments
     existing_data = load_existing_sprint(sprint_id, data_dir)
 
+    # Check if sprint is closed locally - skip sync to preserve historical data
+    if existing_data and existing_data.get('status') == 'closed':
+        logger.info(f"Sprint {sprint_id} is closed locally (closedAt: {existing_data.get('closedAt')}). "
+                   "Skipping sync to preserve historical task/goal data.")
+        logger.info("Only manually editable fields (achievements, nextSprintPlans, comments) can be changed via UI.")
+        sys.exit(0)
+
     # Load config and get label prefixes
     config = load_config(data_dir)
     labels_config = config.get('labels', {})
