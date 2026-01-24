@@ -389,7 +389,7 @@ watch(() => props.textareaRef, (newRef, oldRef) => {
           @click="handleUploadClick"
           :disabled="disabled || isUploading"
           class="p-1.5 rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Dodaj media (upload, Ctrl+V lub przeciagnij)"
+          title="Dodaj media (upload, Ctrl+V lub przeciągnij)"
         >
           <svg v-if="isUploading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

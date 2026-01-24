@@ -26,7 +26,7 @@ const loadMedia = async () => {
     mediaList.value = await listMediaForSprint(props.sprintId)
   } catch (err) {
     console.error('Error loading media list:', err)
-    error.value = 'Nie udalo sie zaladowac listy mediow'
+    error.value = 'Nie udało się załadować listy mediów'
     mediaList.value = []
   } finally {
     loading.value = false
@@ -157,7 +157,7 @@ const formatDate = (timestamp) => {
             @click="loadMedia"
             class="mt-4 px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700"
           >
-            Sprobuj ponownie
+            Spróbuj ponownie
           </button>
         </div>
 
@@ -166,8 +166,8 @@ const formatDate = (timestamp) => {
           <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <p class="text-gray-600">Brak mediow w tym sprincie</p>
-          <p class="text-sm text-gray-500 mt-1">Dodaj media korzystajac z przycisku upload</p>
+          <p class="text-gray-600">Brak mediów w tym sprincie</p>
+          <p class="text-sm text-gray-500 mt-1">Dodaj media korzystając z przycisku upload</p>
         </div>
 
         <!-- Media grid -->

@@ -18,7 +18,7 @@ const activeTab = ref('user') // 'user' or 'admin'
       :class="isConfigured
         ? 'text-green-700 bg-green-100 hover:bg-green-200'
         : 'text-amber-700 bg-amber-100 hover:bg-amber-200'"
-      :title="isConfigured ? 'Polaczenie aktywne' : 'Wymagane logowanie - kliknij po szczegoly'"
+      :title="isConfigured ? 'Połączenie aktywne' : 'Wymagane logowanie - kliknij po szczegóły'"
     >
       <svg v-if="isConfigured" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -63,9 +63,9 @@ const activeTab = ref('user') // 'user' or 'admin'
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p class="font-medium text-green-800">Połaczenie aktywne</p>
+                  <p class="font-medium text-green-800">Połączenie aktywne</p>
                   <p class="text-sm text-green-700 mt-1">
-                    Dane sprintów i komentarze sa synchronizowane z prywatnym repozytorium.
+                    Dane sprintów i komentarze są synchronizowane z prywatnym repozytorium.
                   </p>
                   <p class="text-sm text-green-600 mt-2">
                     Zalogowany jako: <strong>{{ authStore.user?.login || 'Nieznany' }}</strong>
@@ -83,7 +83,7 @@ const activeTab = ref('user') // 'user' or 'admin'
                 <div>
                   <p class="font-medium text-amber-800">Wymagane logowanie</p>
                   <p class="text-sm text-amber-700 mt-1">
-                    Zaloguj sie przez GitHub PAT, aby uzyskac dostep do danych sprintow.
+                    Zaloguj się przez GitHub PAT, aby uzyskać dostęp do danych sprintów.
                   </p>
                 </div>
               </div>
@@ -95,7 +95,7 @@ const activeTab = ref('user') // 'user' or 'admin'
                   class="px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors"
                   :class="activeTab === 'user' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
                 >
-                  Dla uzytkownika
+                  Dla użytkownika
                 </button>
                 <button
                   @click="activeTab = 'admin'"
@@ -108,39 +108,39 @@ const activeTab = ref('user') // 'user' or 'admin'
 
               <!-- User instructions -->
               <div v-if="activeTab === 'user'">
-                <h4 class="font-medium text-gray-800 mb-3 text-sm">Jak uzyskac dostep (dla uzytkownika):</h4>
+                <h4 class="font-medium text-gray-800 mb-3 text-sm">Jak uzyskać dostęp (dla użytkownika):</h4>
 
                 <div class="space-y-3 text-sm">
                   <div class="p-3 bg-gray-50 rounded-lg">
-                    <p class="font-medium text-gray-800 mb-1">1. Utworz Personal Access Token</p>
+                    <p class="font-medium text-gray-800 mb-1">1. Utwórz Personal Access Token</p>
                     <p class="text-gray-600 text-xs mb-2">
-                      Przejdz do <a href="https://github.com/settings/tokens/new" target="_blank" class="text-primary-600 hover:underline">github.com/settings/tokens/new</a>
+                      Przejdź do <a href="https://github.com/settings/tokens/new" target="_blank" class="text-primary-600 hover:underline">github.com/settings/tokens/new</a>
                     </p>
                     <p class="text-gray-600 text-xs">Wymagane uprawnienia:</p>
                     <ul class="list-disc list-inside text-xs text-gray-600 ml-2">
-                      <li><code class="bg-white px-1 rounded">repo</code> - dostep do prywatnego repozytorium</li>
-                      <li><code class="bg-white px-1 rounded">read:org</code> - weryfikacja czlonkostwa w organizacji</li>
+                      <li><code class="bg-white px-1 rounded">repo</code> - dostęp do prywatnego repozytorium</li>
+                      <li><code class="bg-white px-1 rounded">read:org</code> - weryfikacja członkostwa w organizacji</li>
                       <li><code class="bg-white px-1 rounded">workflow</code> - uruchamianie synchronizacji (opcjonalne)</li>
                     </ul>
                   </div>
 
                   <div class="p-3 bg-gray-50 rounded-lg">
-                    <p class="font-medium text-gray-800 mb-1">2. Zaloguj sie w aplikacji</p>
+                    <p class="font-medium text-gray-800 mb-1">2. Zaloguj się w aplikacji</p>
                     <p class="text-gray-600 text-xs">
-                      Wklej token w formularzu logowania. Token jest przechowywany tylko lokalnie w Twojej przegladarce.
+                      Wklej token w formularzu logowania. Token jest przechowywany tylko lokalnie w Twojej przeglądarce.
                     </p>
                   </div>
 
                   <div class="p-3 bg-gray-50 rounded-lg">
                     <p class="font-medium text-gray-800 mb-1">3. Gotowe!</p>
                     <p class="text-gray-600 text-xs">
-                      Dane zostana automatycznie pobrane z repozytorium <code class="bg-white px-1 rounded">Review-Data</code>.
+                      Dane zostaną automatycznie pobrane z repozytorium <code class="bg-white px-1 rounded">Review-Data</code>.
                     </p>
                   </div>
                 </div>
 
                 <div class="mt-4 p-2 bg-blue-50 rounded text-xs text-blue-700">
-                  <strong>Uwaga:</strong> Musisz byc czlonkiem organizacji <code class="bg-blue-100 px-1 rounded">plumspzoo</code> z dostepem do repozytorium Review-Data.
+                  <strong>Uwaga:</strong> Musisz być członkiem organizacji <code class="bg-blue-100 px-1 rounded">plumspzoo</code> z dostępem do repozytorium Review-Data.
                 </div>
               </div>
 
@@ -150,18 +150,18 @@ const activeTab = ref('user') // 'user' or 'admin'
 
                 <div class="space-y-3 text-sm">
                   <div class="p-3 bg-gray-50 rounded-lg">
-                    <p class="font-medium text-gray-800 mb-1">1. Utworz prywatne repozytorium</p>
+                    <p class="font-medium text-gray-800 mb-1">1. Utwórz prywatne repozytorium</p>
                     <p class="text-gray-600 text-xs mb-2">
-                      Utworz repozytorium <code class="bg-white px-1 rounded">Review-Data</code> w organizacji <code class="bg-white px-1 rounded">plumspzoo</code>
+                      Utwórz repozytorium <code class="bg-white px-1 rounded">Review-Data</code> w organizacji <code class="bg-white px-1 rounded">plumspzoo</code>
                     </p>
                   </div>
 
                   <div class="p-3 bg-gray-50 rounded-lg">
-                    <p class="font-medium text-gray-800 mb-1">2. Utworz strukture plikow</p>
+                    <p class="font-medium text-gray-800 mb-1">2. Utwórz strukturę plików</p>
                     <pre class="text-xs text-gray-600 font-mono bg-white p-2 rounded border mt-1">Review-Data/
-├── current-sprint.json  ← w katalogu glownym!
+├── current-sprint.json  ← w katalogu głównym!
 └── sprints/             ← podkatalog na sprinty</pre>
-                    <p class="text-gray-600 text-xs mt-2">Zawartosc <code class="bg-white px-1 rounded">current-sprint.json</code>:</p>
+                    <p class="text-gray-600 text-xs mt-2">Zawartość <code class="bg-white px-1 rounded">current-sprint.json</code>:</p>
                     <pre class="text-xs text-gray-600 font-mono bg-white p-2 rounded border mt-1">{
   "currentSprintId": 8663,
   "isActive": true
@@ -181,15 +181,15 @@ const activeTab = ref('user') // 'user' or 'admin'
                   </div>
 
                   <div class="p-3 bg-gray-50 rounded-lg">
-                    <p class="font-medium text-gray-800 mb-1">4. Uruchom synchronizacje z Jira</p>
+                    <p class="font-medium text-gray-800 mb-1">4. Uruchom synchronizację z Jira</p>
                     <p class="text-gray-600 text-xs">
-                      Workflow <code class="bg-white px-1 rounded">sync-jira-on-demand</code> automatycznie utworzy pliki sprintow.
+                      Workflow <code class="bg-white px-1 rounded">sync-jira-on-demand</code> automatycznie utworzy pliki sprintów.
                     </p>
                   </div>
                 </div>
 
                 <div class="mt-4 p-2 bg-amber-50 rounded text-xs text-amber-700">
-                  <strong>Wazne:</strong> DATA_REPO_TOKEN to oddzielny token dla GitHub Actions. Kazdy uzytkownik loguje sie wlasnym PAT.
+                  <strong>Ważne:</strong> DATA_REPO_TOKEN to oddzielny token dla GitHub Actions. Każdy użytkownik loguje się własnym PAT.
                 </div>
               </div>
             </div>

@@ -126,8 +126,8 @@ const generatePdfContent = () => {
           <div class="goal-title">${index + 1}. ${sideGoal.title}</div>
           <div class="goal-meta">
             ${sideGoal.client ? `Klient: ${sideGoal.client} · ` : ''}
-            Postep: ${sideGoal.completionPercent}% ·
-            ${sideGoal.completed ? '✓ Ukonczony' : 'W trakcie'}
+            Postęp: ${sideGoal.completionPercent}% ·
+            ${sideGoal.completed ? '✓ Ukończony' : 'W trakcie'}
           </div>
           <div class="progress">
             <div class="progress-bar" style="width: ${sideGoal.completionPercent}%; background: #f59e0b;"></div>
