@@ -12,7 +12,7 @@ const props = defineProps({
 })
 
 // Stan rozwinięcia
-const expandedClient = ref(null)
+const expandedClients = ref(new Set())
 const expandedGoals = ref(new Set())
 const sortBy = ref('status')
 
@@ -50,19 +50,33 @@ const totalStats = computed(() => {
   )
 })
 
-// Toggle klienta
+// Toggle klienta (pozwala na rozwinięcie wielu klientów jednocześnie)
 const toggleClient = (clientName) => {
-  expandedClient.value = expandedClient.value === clientName ? null : clientName
-  expandedGoals.value = new Set()
+  const newSet = new Set(expandedClients.value)
+  if (newSet.has(clientName)) {
+    newSet.delete(clientName)
+  } else {
+    newSet.add(clientName)
+  }
+  expandedClients.value = newSet
 }
 
-// Toggle celu
-const toggleGoal = (goalId) => {
+// Toggle celu - rozwija wszystkie cele danego klienta (główne i poboczne)
+const toggleGoal = (clientName) => {
+  const clientGoals = getClientGoals(clientName)
+  const clientSideGoals = getClientSideGoals(clientName)
+  const allGoalIds = [...clientGoals.map(g => g.id), ...clientSideGoals.map(sg => sg.id)]
+
+  // Sprawdź czy jakikolwiek cel klienta jest rozwinięty
+  const anyExpanded = allGoalIds.some(id => expandedGoals.value.has(id))
+
   const newSet = new Set(expandedGoals.value)
-  if (newSet.has(goalId)) {
-    newSet.delete(goalId)
+  if (anyExpanded) {
+    // Zwiń wszystkie cele tego klienta
+    allGoalIds.forEach(id => newSet.delete(id))
   } else {
-    newSet.add(goalId)
+    // Rozwiń wszystkie cele tego klienta
+    allGoalIds.forEach(id => newSet.add(id))
   }
   expandedGoals.value = newSet
 }
@@ -120,6 +134,20 @@ const getSortedTasksForGoal = (goal, isSideGoal) => {
   return sortTasks(tasks)
 }
 
+// Grupowanie zadań po epicach (dla sortowania po epicach)
+const getTasksByEpic = (goal, isSideGoal) => {
+  const tasks = getSortedTasksForGoal(goal, isSideGoal)
+  if (sortBy.value !== 'epic') return null
+
+  const grouped = {}
+  tasks.forEach(task => {
+    const epic = task.epic || 'Inne'
+    if (!grouped[epic]) grouped[epic] = []
+    grouped[epic].push(task)
+  })
+  return grouped
+}
+
 // Gradient dla KLIENTA (zależny od ukończenia wszystkich jego zadań)
 const getClientGradient = (client) => {
   const completionPercent = client.tasks > 0
@@ -150,11 +178,6 @@ const getGoalGradient = (goal, isSideGoal = false) => {
   return isSideGoal
     ? 'bg-gradient-to-r from-primary-50 to-white'
     : 'bg-gradient-to-r from-primary-100 to-white'
-}
-
-const getGoalCompletionPercent = (goal) => {
-  if (!goal.taskStats?.total) return 0
-  return Math.round((goal.taskStats.done / goal.taskStats.total) * 100)
 }
 
 const statusColors = {
@@ -215,16 +238,11 @@ const statusColors = {
             :class="getClientGradient(client)"
           >
             <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center font-semibold">
-                  {{ client.name.charAt(0) }}
-                </div>
-                <div>
-                  <h4 class="font-medium text-gray-900">{{ client.name }}</h4>
-                  <p class="text-sm text-gray-500">
-                    {{ pluralizeWithCount(client.goals, POLISH_NOUNS.goal) }} · {{ pluralizeWithCount(client.sideGoals, POLISH_NOUNS.sideGoal) }} · {{ pluralizeWithCount(client.tasks, POLISH_NOUNS.task) }}
-                  </p>
-                </div>
+              <div>
+                <h4 class="font-medium text-gray-900">{{ client.name }}</h4>
+                <p class="text-sm text-gray-500">
+                  {{ pluralizeWithCount(client.goals, POLISH_NOUNS.goal) }} · {{ pluralizeWithCount(client.sideGoals, POLISH_NOUNS.sideGoal) }} · {{ pluralizeWithCount(client.tasks, POLISH_NOUNS.task) }}
+                </p>
               </div>
               <div class="flex items-center gap-4">
                 <div class="text-right">
@@ -233,7 +251,7 @@ const statusColors = {
                 </div>
                 <svg
                   class="w-5 h-5 text-gray-400 transition-transform duration-200"
-                  :class="{ 'rotate-180': expandedClient === client.name }"
+                  :class="{ 'rotate-180': expandedClients.has(client.name) }"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -246,7 +264,7 @@ const statusColors = {
           </button>
 
           <!-- Rozwinięta sekcja klienta -->
-          <div v-if="expandedClient === client.name" class="bg-gray-50 px-6 py-4 space-y-4">
+          <div v-if="expandedClients.has(client.name)" class="bg-gray-50 px-6 py-4 space-y-4">
             <!-- CELE GŁÓWNE -->
             <div v-if="getClientGoals(client.name).length > 0">
               <h5 class="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Cele Główne</h5>
@@ -254,7 +272,7 @@ const statusColors = {
                 <div v-for="goal in getClientGoals(client.name)" :key="goal.id">
                   <!-- Cel - klikalny element -->
                   <button
-                    @click="toggleGoal(goal.id)"
+                    @click="toggleGoal(client.name)"
                     class="w-full p-3 rounded-lg border transition-all text-left"
                     :class="getGoalGradient(goal, false)"
                   >
@@ -275,10 +293,9 @@ const statusColors = {
                         <span class="font-medium text-gray-900 truncate">{{ goal.title }}</span>
                       </div>
                       <div class="flex items-center gap-3">
-                        <div class="w-24">
+                        <div class="w-32">
                           <ProgressBar :task-stats="goal.taskStats" size="sm" />
                         </div>
-                        <span class="text-sm font-medium text-gray-600 w-10 text-right">{{ getGoalCompletionPercent(goal) }}%</span>
                         <svg
                           class="w-4 h-4 text-gray-400 transition-transform duration-200"
                           :class="{ 'rotate-180': expandedGoals.has(goal.id) }"
@@ -292,40 +309,84 @@ const statusColors = {
                     </div>
                   </button>
 
-                  <!-- Zadania pod celem -->
-                  <div v-if="expandedGoals.has(goal.id)" class="mt-2 ml-7 space-y-1">
-                    <a
-                      v-for="task in getSortedTasksForGoal(goal, false)"
-                      :key="task.key"
-                      :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
-                      :target="sprint.jiraBaseUrl ? '_blank' : undefined"
-                      :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
-                      class="flex items-center gap-3 p-2 rounded hover:bg-white transition-colors"
-                    >
-                      <span
-                        class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
-                        :class="task.status === 'Done' ? 'bg-green-500 text-white' : task.status === 'In Progress' ? 'bg-blue-500 text-white' : 'border-2 border-gray-300'"
-                      >
-                        <svg v-if="task.status === 'Done'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                        </svg>
-                        <span v-else-if="task.status === 'In Progress'" class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                      </span>
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                          <span class="text-xs font-mono text-gray-400">{{ task.key }}</span>
-                          <span v-if="task.epic" class="text-xs text-gray-400">{{ task.epic }}</span>
+                  <!-- Zadania pod celem - grupowane po epicach -->
+                  <div v-if="expandedGoals.has(goal.id)" class="mt-2 ml-7">
+                    <!-- Widok z grupami epiców -->
+                    <template v-if="getTasksByEpic(goal, false)">
+                      <div v-for="(epicTasks, epicName) in getTasksByEpic(goal, false)" :key="epicName">
+                        <div class="px-2 py-1.5 bg-gray-200 rounded text-xs font-medium text-gray-600 mb-1">
+                          {{ epicName }}
                         </div>
-                        <p class="text-sm text-gray-900 truncate">{{ task.summary }}</p>
+                        <div class="space-y-1 mb-2">
+                          <a
+                            v-for="task in epicTasks"
+                            :key="task.key"
+                            :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
+                            :target="sprint.jiraBaseUrl ? '_blank' : undefined"
+                            :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+                            class="flex items-center gap-3 p-2 rounded hover:bg-white transition-colors"
+                          >
+                            <span
+                              class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                              :class="task.status === 'Done' ? 'bg-green-500 text-white' : task.status === 'In Progress' ? 'bg-blue-500 text-white' : 'border-2 border-gray-300'"
+                            >
+                              <svg v-if="task.status === 'Done'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                              </svg>
+                              <span v-else-if="task.status === 'In Progress'" class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                              <span class="text-xs font-mono text-gray-400">{{ task.key }}</span>
+                              <p class="text-sm text-gray-900 truncate">{{ task.summary }}</p>
+                            </div>
+                            <span v-if="task.assignee" class="text-xs text-gray-500 flex-shrink-0">{{ task.assignee }}</span>
+                            <span
+                              class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
+                              :class="statusColors[task.status]"
+                            >
+                              {{ task.status }}
+                            </span>
+                          </a>
+                        </div>
                       </div>
-                      <span v-if="task.assignee" class="text-xs text-gray-500 flex-shrink-0">{{ task.assignee }}</span>
-                      <span
-                        class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
-                        :class="statusColors[task.status]"
-                      >
-                        {{ task.status }}
-                      </span>
-                    </a>
+                    </template>
+                    <!-- Widok płaski (bez grupowania) -->
+                    <template v-else>
+                      <div class="space-y-1">
+                        <a
+                          v-for="task in getSortedTasksForGoal(goal, false)"
+                          :key="task.key"
+                          :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
+                          :target="sprint.jiraBaseUrl ? '_blank' : undefined"
+                          :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+                          class="flex items-center gap-3 p-2 rounded hover:bg-white transition-colors"
+                        >
+                          <span
+                            class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                            :class="task.status === 'Done' ? 'bg-green-500 text-white' : task.status === 'In Progress' ? 'bg-blue-500 text-white' : 'border-2 border-gray-300'"
+                          >
+                            <svg v-if="task.status === 'Done'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                            <span v-else-if="task.status === 'In Progress'" class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                          </span>
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                              <span class="text-xs font-mono text-gray-400">{{ task.key }}</span>
+                              <span v-if="task.epic" class="text-xs text-gray-400">{{ task.epic }}</span>
+                            </div>
+                            <p class="text-sm text-gray-900 truncate">{{ task.summary }}</p>
+                          </div>
+                          <span v-if="task.assignee" class="text-xs text-gray-500 flex-shrink-0">{{ task.assignee }}</span>
+                          <span
+                            class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
+                            :class="statusColors[task.status]"
+                          >
+                            {{ task.status }}
+                          </span>
+                        </a>
+                      </div>
+                    </template>
                     <div v-if="getSortedTasksForGoal(goal, false).length === 0" class="text-sm text-gray-400 py-2">
                       Brak zadań
                     </div>
@@ -341,7 +402,7 @@ const statusColors = {
                 <div v-for="sideGoal in getClientSideGoals(client.name)" :key="sideGoal.id">
                   <!-- Cel poboczny - klikalny element -->
                   <button
-                    @click="toggleGoal(sideGoal.id)"
+                    @click="toggleGoal(client.name)"
                     class="w-full p-3 rounded-lg border transition-all text-left"
                     :class="getGoalGradient(sideGoal, true)"
                   >
@@ -362,10 +423,9 @@ const statusColors = {
                         <span class="font-medium text-gray-900 truncate">{{ sideGoal.title }}</span>
                       </div>
                       <div class="flex items-center gap-3">
-                        <div class="w-24">
+                        <div class="w-32">
                           <ProgressBar :task-stats="sideGoal.taskStats" size="sm" />
                         </div>
-                        <span class="text-sm font-medium text-gray-600 w-10 text-right">{{ getGoalCompletionPercent(sideGoal) }}%</span>
                         <svg
                           class="w-4 h-4 text-gray-400 transition-transform duration-200"
                           :class="{ 'rotate-180': expandedGoals.has(sideGoal.id) }"
@@ -379,40 +439,84 @@ const statusColors = {
                     </div>
                   </button>
 
-                  <!-- Zadania pod celem pobocznym -->
-                  <div v-if="expandedGoals.has(sideGoal.id)" class="mt-2 ml-7 space-y-1">
-                    <a
-                      v-for="task in getSortedTasksForGoal(sideGoal, true)"
-                      :key="task.key"
-                      :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
-                      :target="sprint.jiraBaseUrl ? '_blank' : undefined"
-                      :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
-                      class="flex items-center gap-3 p-2 rounded hover:bg-white transition-colors"
-                    >
-                      <span
-                        class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
-                        :class="task.status === 'Done' ? 'bg-green-500 text-white' : task.status === 'In Progress' ? 'bg-blue-500 text-white' : 'border-2 border-gray-300'"
-                      >
-                        <svg v-if="task.status === 'Done'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                        </svg>
-                        <span v-else-if="task.status === 'In Progress'" class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                      </span>
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                          <span class="text-xs font-mono text-gray-400">{{ task.key }}</span>
-                          <span v-if="task.epic" class="text-xs text-gray-400">{{ task.epic }}</span>
+                  <!-- Zadania pod celem pobocznym - grupowane po epicach -->
+                  <div v-if="expandedGoals.has(sideGoal.id)" class="mt-2 ml-7">
+                    <!-- Widok z grupami epiców -->
+                    <template v-if="getTasksByEpic(sideGoal, true)">
+                      <div v-for="(epicTasks, epicName) in getTasksByEpic(sideGoal, true)" :key="epicName">
+                        <div class="px-2 py-1.5 bg-gray-200 rounded text-xs font-medium text-gray-600 mb-1">
+                          {{ epicName }}
                         </div>
-                        <p class="text-sm text-gray-900 truncate">{{ task.summary }}</p>
+                        <div class="space-y-1 mb-2">
+                          <a
+                            v-for="task in epicTasks"
+                            :key="task.key"
+                            :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
+                            :target="sprint.jiraBaseUrl ? '_blank' : undefined"
+                            :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+                            class="flex items-center gap-3 p-2 rounded hover:bg-white transition-colors"
+                          >
+                            <span
+                              class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                              :class="task.status === 'Done' ? 'bg-green-500 text-white' : task.status === 'In Progress' ? 'bg-blue-500 text-white' : 'border-2 border-gray-300'"
+                            >
+                              <svg v-if="task.status === 'Done'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                              </svg>
+                              <span v-else-if="task.status === 'In Progress'" class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                              <span class="text-xs font-mono text-gray-400">{{ task.key }}</span>
+                              <p class="text-sm text-gray-900 truncate">{{ task.summary }}</p>
+                            </div>
+                            <span v-if="task.assignee" class="text-xs text-gray-500 flex-shrink-0">{{ task.assignee }}</span>
+                            <span
+                              class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
+                              :class="statusColors[task.status]"
+                            >
+                              {{ task.status }}
+                            </span>
+                          </a>
+                        </div>
                       </div>
-                      <span v-if="task.assignee" class="text-xs text-gray-500 flex-shrink-0">{{ task.assignee }}</span>
-                      <span
-                        class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
-                        :class="statusColors[task.status]"
-                      >
-                        {{ task.status }}
-                      </span>
-                    </a>
+                    </template>
+                    <!-- Widok płaski (bez grupowania) -->
+                    <template v-else>
+                      <div class="space-y-1">
+                        <a
+                          v-for="task in getSortedTasksForGoal(sideGoal, true)"
+                          :key="task.key"
+                          :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
+                          :target="sprint.jiraBaseUrl ? '_blank' : undefined"
+                          :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+                          class="flex items-center gap-3 p-2 rounded hover:bg-white transition-colors"
+                        >
+                          <span
+                            class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                            :class="task.status === 'Done' ? 'bg-green-500 text-white' : task.status === 'In Progress' ? 'bg-blue-500 text-white' : 'border-2 border-gray-300'"
+                          >
+                            <svg v-if="task.status === 'Done'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                            <span v-else-if="task.status === 'In Progress'" class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                          </span>
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                              <span class="text-xs font-mono text-gray-400">{{ task.key }}</span>
+                              <span v-if="task.epic" class="text-xs text-gray-400">{{ task.epic }}</span>
+                            </div>
+                            <p class="text-sm text-gray-900 truncate">{{ task.summary }}</p>
+                          </div>
+                          <span v-if="task.assignee" class="text-xs text-gray-500 flex-shrink-0">{{ task.assignee }}</span>
+                          <span
+                            class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
+                            :class="statusColors[task.status]"
+                          >
+                            {{ task.status }}
+                          </span>
+                        </a>
+                      </div>
+                    </template>
                     <div v-if="getSortedTasksForGoal(sideGoal, true).length === 0" class="text-sm text-gray-400 py-2">
                       Brak zadań
                     </div>
