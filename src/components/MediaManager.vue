@@ -287,7 +287,7 @@ onUnmounted(() => {
           v-for="media in mediaList"
           :key="media.path"
           class="group relative"
-          @[media.type==='image'&&'mouseenter']="loadThumbnail(media)"
+          @mouseenter="loadThumbnail(media)"
         >
           <!-- Thumbnail container -->
           <div
