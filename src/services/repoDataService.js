@@ -471,30 +471,6 @@ export async function fetchBinaryFile(path) {
     throw new Error('Repository not configured - user not authenticated')
   }
 
-  const url = `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${path}`
-
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${config.token}`,
-      'Accept': 'application/vnd.github.v3+json'
-    },
-    cache: 'no-store'
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch file ${path}: ${response.status}`)
-  }
-
-  const data = await response.json()
-
-  // Decode base64 content
-  const cleanBase64 = data.content.replace(/\n/g, '')
-  const binaryString = atob(cleanBase64)
-  const bytes = new Uint8Array(binaryString.length)
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i)
-  }
-
   // Determine MIME type from extension
   const extension = path.split('.').pop().toLowerCase()
   const mimeTypes = {
@@ -508,5 +484,64 @@ export async function fetchBinaryFile(path) {
   }
   const mimeType = mimeTypes[extension] || 'application/octet-stream'
 
-  return new Blob([bytes], { type: mimeType })
+  // First, get file metadata from Contents API
+  const metadataUrl = `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${path}`
+
+  const metadataResponse = await fetch(metadataUrl, {
+    headers: {
+      'Authorization': `Bearer ${config.token}`,
+      'Accept': 'application/vnd.github.v3+json'
+    },
+    cache: 'no-store'
+  })
+
+  if (!metadataResponse.ok) {
+    throw new Error(`Failed to fetch file ${path}: ${metadataResponse.status}`)
+  }
+
+  const data = await metadataResponse.json()
+
+  // For files > 1MB, GitHub doesn't return content directly
+  // We need to use the download_url or raw endpoint
+  if (data.content) {
+    // Small file - content is base64 encoded
+    const cleanBase64 = data.content.replace(/\n/g, '')
+    const binaryString = atob(cleanBase64)
+    const bytes = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i)
+    }
+    return new Blob([bytes], { type: mimeType })
+  } else if (data.download_url) {
+    // Large file - fetch from download_url (requires token for private repos)
+    const downloadResponse = await fetch(data.download_url, {
+      headers: {
+        'Authorization': `Bearer ${config.token}`
+      },
+      cache: 'no-store'
+    })
+
+    if (!downloadResponse.ok) {
+      throw new Error(`Failed to download file ${path}: ${downloadResponse.status}`)
+    }
+
+    const arrayBuffer = await downloadResponse.arrayBuffer()
+    return new Blob([arrayBuffer], { type: mimeType })
+  } else {
+    // Fallback: use raw media type to get content directly
+    const rawResponse = await fetch(metadataUrl, {
+      headers: {
+        'Authorization': `Bearer ${config.token}`,
+        'Accept': 'application/vnd.github.raw'
+      },
+      cache: 'no-store'
+    })
+
+    if (!rawResponse.ok) {
+      throw new Error(`Failed to fetch raw file ${path}: ${rawResponse.status}`)
+    }
+
+    const arrayBuffer = await rawResponse.arrayBuffer()
+    return new Blob([arrayBuffer], { type: mimeType })
+  }
 }

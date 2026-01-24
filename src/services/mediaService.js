@@ -83,16 +83,42 @@ export function fileToBase64(file) {
 }
 
 /**
- * Generate unique filename for media
+ * Sanitize filename - remove special characters that could cause issues
+ * @param {string} name - Original filename
+ * @returns {string} Sanitized filename
+ */
+function sanitizeFileName(name) {
+  // Remove path separators and special characters, keep letters, numbers, dots, hyphens, underscores
+  return name
+    .replace(/[/\\:*?"<>|]/g, '') // Remove invalid file characters
+    .replace(/\s+/g, '_')          // Replace spaces with underscores
+    .replace(/[^\w.\-]/g, '')      // Remove other special characters (keep word chars, dots, hyphens)
+    .replace(/\.+/g, '.')          // Remove multiple consecutive dots
+    .replace(/^\.+|\.+$/g, '')     // Remove leading/trailing dots
+}
+
+/**
+ * Generate unique filename for media - keeps original name with timestamp prefix
  * @param {string} originalName - Original file name
  * @param {number|string} sprintId - Sprint ID
  * @returns {string} Generated filename
  */
 export function generateFileName(originalName, sprintId) {
   const timestamp = Date.now()
-  const randomSuffix = Math.random().toString(36).substring(2, 8)
-  const extension = originalName.split('.').pop().toLowerCase()
-  return `${timestamp}-${randomSuffix}.${extension}`
+
+  // Get the original filename without extension
+  const parts = originalName.split('.')
+  const extension = parts.pop().toLowerCase()
+  const nameWithoutExt = parts.join('.')
+
+  // Sanitize the original name
+  const sanitizedName = sanitizeFileName(nameWithoutExt)
+
+  // If sanitized name is empty, use a generic name
+  const baseName = sanitizedName || 'media'
+
+  // Return: timestamp_originalname.ext
+  return `${timestamp}_${baseName}.${extension}`
 }
 
 /**
@@ -164,10 +190,14 @@ export async function fetchMediaBlob(path) {
 export async function getMediaUrl(path) {
   // Check cache first
   if (blobUrlCache.has(path)) {
+    console.log(`[Media] Using cached blob URL for: ${path}`)
     return blobUrlCache.get(path)
   }
 
+  console.log(`[Media] Fetching blob for: ${path}`)
   const blob = await fetchMediaBlob(path)
+  console.log(`[Media] Got blob:`, { path, type: blob.type, size: blob.size })
+
   const blobUrl = URL.createObjectURL(blob)
 
   // Cache the URL

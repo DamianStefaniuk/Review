@@ -102,7 +102,9 @@ export async function processMediaUrls(container) {
     if (!path) return
 
     try {
+      console.log(`[Media] Loading: ${path}`)
       const blobUrl = await getMediaUrl(path)
+      console.log(`[Media] Got blob URL for: ${path}`, blobUrl)
 
       // Update image or video source
       const img = mediaDiv.querySelector('img[data-src]')
@@ -111,11 +113,14 @@ export async function processMediaUrls(container) {
       if (img) {
         img.src = blobUrl
         img.onload = () => {
+          console.log(`[Media] Image loaded successfully: ${path}`)
           mediaDiv.classList.remove('media-loading')
           const placeholder = mediaDiv.querySelector('.media-placeholder')
           if (placeholder) placeholder.remove()
         }
-        img.onerror = () => {
+        img.onerror = (event) => {
+          console.error(`[Media] Image load error: ${path}`, event)
+          mediaDiv.classList.remove('media-loading')
           mediaDiv.classList.add('media-error')
           const placeholder = mediaDiv.querySelector('.media-placeholder')
           if (placeholder) {
@@ -123,7 +128,7 @@ export async function processMediaUrls(container) {
               <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span class="text-sm text-red-500">Blad ladowania obrazu</span>
+              <span class="text-sm text-red-500">Błąd ładowania obrazu</span>
             `
           }
         }
@@ -144,7 +149,7 @@ export async function processMediaUrls(container) {
               <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span class="text-sm text-red-500">Blad ladowania video</span>
+              <span class="text-sm text-red-500">Błąd ładowania video</span>
             `
           }
         }
