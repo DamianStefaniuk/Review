@@ -17,6 +17,7 @@ import JiraSyncButton from '../components/JiraSyncButton.vue'
 import CloseSprintButton from '../components/CloseSprintButton.vue'
 import DataRepoStatus from '../components/DataRepoStatus.vue'
 import MediaManager from '../components/MediaManager.vue'
+import PresentationSetup from '../components/PresentationSetup.vue'
 
 const authStore = useAuthStore()
 const refreshSidebar = inject('refreshSidebar', () => {})
@@ -373,6 +374,13 @@ onMounted(() => {
           >
             Media
           </button>
+          <button
+            @click="activeTab = 'presentation'"
+            class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors"
+            :class="activeTab === 'presentation' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+          >
+            Prezentacja
+          </button>
         </div>
       </nav>
 
@@ -457,6 +465,13 @@ onMounted(() => {
               :is-sprint-active="sprint.status === 'active'"
               @sprint-updated="handleSprintDataRefresh"
             />
+          </div>
+        </template>
+
+        <!-- Presentation tab -->
+        <template v-if="activeTab === 'presentation'">
+          <div class="lg:col-span-3">
+            <PresentationSetup :sprint="sprint" />
           </div>
         </template>
       </div>

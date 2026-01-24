@@ -212,25 +212,5 @@ const formatDate = (dateStr) => {
       <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
     </div>
 
-    <!-- Footer -->
-    <div class="border-t border-gray-200 p-4">
-      <button
-        v-if="!collapsed"
-        class="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-        @click="router.push({ name: 'presentation', params: { sprintId: route.params.sprintId || currentSprintId } })"
-      >
-        Tryb prezentacji
-      </button>
-      <button
-        v-else
-        class="w-full p-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-        title="Tryb prezentacji"
-        @click="router.push({ name: 'presentation', params: { sprintId: route.params.sprintId || currentSprintId } })"
-      >
-        <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      </button>
-    </div>
   </aside>
 </template>
