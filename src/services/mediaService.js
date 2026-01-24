@@ -245,6 +245,34 @@ export function revokeBlobUrl(path) {
 }
 
 /**
+ * Force refresh a media URL - invalidate cache and fetch fresh
+ * @param {string} path - Path to media file in repository
+ * @returns {Promise<string>} Fresh blob URL
+ */
+export async function refreshMediaUrl(path) {
+  // Revoke old URL if cached
+  revokeBlobUrl(path)
+
+  // Fetch fresh
+  const blob = await fetchMediaBlob(path)
+  const blobUrl = URL.createObjectURL(blob)
+
+  // Cache the new URL
+  blobUrlCache.set(path, blobUrl)
+
+  return blobUrl
+}
+
+/**
+ * Check if a path has a cached blob URL
+ * @param {string} path - Path to check
+ * @returns {boolean}
+ */
+export function hasCachedUrl(path) {
+  return blobUrlCache.has(path)
+}
+
+/**
  * List all media files for a specific sprint
  * @param {number|string} sprintId - Sprint ID
  * @returns {Promise<Array<{name: string, path: string, sha: string, size: number, displayName: string, timestamp: number, extension: string, type: string}>>}

@@ -8,7 +8,7 @@
 
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import { isMediaPath, isVideoPath, getMediaUrl, clearBlobCache } from '../services/mediaService'
+import { isMediaPath, isVideoPath, getMediaUrl, clearBlobCache, refreshMediaUrl, hasCachedUrl } from '../services/mediaService'
 
 // Track pending media loads for a given content
 const pendingLoads = new Map()
@@ -100,6 +100,9 @@ export async function processMediaUrls(container) {
     const path = mediaDiv.getAttribute('data-media-path')
     if (!path) return
 
+    // Check if URL was cached BEFORE fetching (for video retry logic)
+    const wasCached = hasCachedUrl(path)
+
     try {
       const blobUrl = await getMediaUrl(path)
 
@@ -137,16 +140,35 @@ export async function processMediaUrls(container) {
           source.remove()
         }
 
-        video.src = blobUrl
-        // Explicitly trigger loading - required in some browsers after component re-render
-        video.load()
+        // Track retry state (wasCached is checked before getMediaUrl call)
+        let hasRetried = false
+
+        const loadVideo = (url) => {
+          video.src = url
+          // Explicitly trigger loading - required in some browsers after component re-render
+          video.load()
+        }
 
         video.onloadeddata = () => {
           mediaDiv.classList.remove('media-loading')
           const placeholder = mediaDiv.querySelector('.media-placeholder')
           if (placeholder) placeholder.remove()
         }
-        video.onerror = () => {
+
+        video.onerror = async () => {
+          // If we used a cached URL and haven't retried yet, try refreshing
+          if (wasCached && !hasRetried) {
+            hasRetried = true
+            try {
+              const freshUrl = await refreshMediaUrl(path)
+              loadVideo(freshUrl)
+              return // Don't show error yet, wait for retry result
+            } catch (retryError) {
+              console.error(`[Media] Video retry failed: ${path}`, retryError)
+            }
+          }
+
+          // Show error after retry failed or if we didn't use cached URL
           mediaDiv.classList.remove('media-loading')
           mediaDiv.classList.add('media-error')
           const placeholder = mediaDiv.querySelector('.media-placeholder')
@@ -159,6 +181,8 @@ export async function processMediaUrls(container) {
             `
           }
         }
+
+        loadVideo(blobUrl)
       }
     } catch (error) {
       console.error(`Failed to load media: ${path}`, error)
