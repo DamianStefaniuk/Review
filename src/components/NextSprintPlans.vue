@@ -1,12 +1,10 @@
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { isRepoDataConfigured } from '../services/repoDataService'
 import { useOperationQueue } from '../composables/useOperationQueue'
 import MediaUploader from './MediaUploader.vue'
-import { generateMediaMarkdown, renderMarkdownWithMedia, processMediaUrls, clearBlobCache } from '../utils/markdownMedia'
+import { generateMediaMarkdown, renderMarkdownWithMedia, processMediaUrls } from '../utils/markdownMedia'
 
 const props = defineProps({
   content: {
@@ -35,6 +33,7 @@ const saveError = ref(null)
 const showMediaUploader = ref(false)
 const textareaRef = ref(null)
 const contentRef = ref(null)
+const editPreviewRef = ref(null)
 
 const canEdit = computed(() => authStore.isAuthenticated && isRepoDataConfigured())
 
@@ -45,7 +44,7 @@ const renderedContent = computed(() => {
 
 const renderedEditPreview = computed(() => {
   if (!editContent.value) return ''
-  return DOMPurify.sanitize(marked(editContent.value))
+  return renderMarkdownWithMedia(editContent.value)
 })
 
 // Process media URLs when content changes
@@ -56,14 +55,20 @@ watch(renderedContent, async () => {
   }
 })
 
+// Process media URLs in edit preview
+const processEditPreviewMedia = async () => {
+  await nextTick()
+  if (editPreviewRef.value) {
+    processMediaUrls(editPreviewRef.value)
+  }
+}
+
+watch(editContent, processEditPreviewMedia)
+
 onMounted(() => {
   if (contentRef.value) {
     processMediaUrls(contentRef.value)
   }
-})
-
-onUnmounted(() => {
-  clearBlobCache()
 })
 
 watch(() => props.content, (newContent) => {
@@ -253,6 +258,7 @@ const insertAtCursor = (text) => {
       <div v-if="editContent" class="mt-6 pt-6 border-t border-gray-200">
         <h4 class="text-sm font-medium text-gray-700 mb-3">Podgląd:</h4>
         <div
+          ref="editPreviewRef"
           class="markdown-content prose prose-sm max-w-none p-4 bg-gray-50 rounded-lg"
           v-html="renderedEditPreview"
         ></div>

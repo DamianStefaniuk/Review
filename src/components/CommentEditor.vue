@@ -1,9 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
+import { ref, computed, watch, nextTick } from 'vue'
 import MediaUploader from './MediaUploader.vue'
-import { generateMediaMarkdown } from '../utils/markdownMedia'
+import { generateMediaMarkdown, renderMarkdownWithMedia, processMediaUrls } from '../utils/markdownMedia'
 
 const props = defineProps({
   sprintId: {
@@ -18,11 +16,22 @@ const commentText = ref('')
 const isSubmitting = ref(false)
 const showMediaUploader = ref(false)
 const textareaRef = ref(null)
+const previewRef = ref(null)
 
 const renderedPreview = computed(() => {
   if (!commentText.value) return ''
-  return DOMPurify.sanitize(marked(commentText.value))
+  return renderMarkdownWithMedia(commentText.value)
 })
+
+// Process media in preview when content changes
+const processPreviewMedia = async () => {
+  await nextTick()
+  if (previewRef.value) {
+    processMediaUrls(previewRef.value)
+  }
+}
+
+watch(commentText, processPreviewMedia)
 
 const handleSubmit = async () => {
   if (!commentText.value.trim()) return
@@ -120,6 +129,7 @@ const insertAtCursor = (text) => {
       <div class="pt-3 border-t border-gray-200">
         <h4 class="text-sm font-medium text-gray-700 mb-2">Podglad:</h4>
         <div
+          ref="previewRef"
           class="markdown-content prose prose-sm max-w-none p-3 bg-gray-50 rounded-lg"
           v-html="renderedPreview"
         ></div>

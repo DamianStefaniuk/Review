@@ -16,9 +16,9 @@ const sortBy = ref('status')
 const filterStatus = ref('all')
 
 const statusOrder = {
-  'Done': 3,
+  'To Do': 3,
   'In Progress': 2,
-  'To Do': 1
+  'Done': 1
 }
 
 const sortedTasks = computed(() => {

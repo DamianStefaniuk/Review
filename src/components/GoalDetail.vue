@@ -1,13 +1,11 @@
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import ProgressBar from './ProgressBar.vue'
 import CommentEditor from './CommentEditor.vue'
 import MediaUploader from './MediaUploader.vue'
 import { getTasksForGoal, getTasksForSideGoal } from '../services/dataLoader'
 import { pluralize, pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
-import { renderMarkdownWithMedia, processMediaUrls, clearBlobCache, generateMediaMarkdown } from '../utils/markdownMedia'
+import { renderMarkdownWithMedia, processMediaUrls, generateMediaMarkdown } from '../utils/markdownMedia'
 
 const props = defineProps({
   goal: {
@@ -33,11 +31,12 @@ const editTextareaRef = ref(null)
 
 // Comment content refs for media processing
 const commentsContainerRef = ref(null)
+const editPreviewRef = ref(null)
 
-// Computed for edit preview
+// Computed for edit preview - use renderMarkdownWithMedia for proper media handling
 const editPreview = computed(() => {
   if (!editText.value) return ''
-  return DOMPurify.sanitize(marked(editText.value))
+  return renderMarkdownWithMedia(editText.value)
 })
 
 // Delete state
@@ -136,16 +135,26 @@ const processCommentsMedia = async () => {
   }
 }
 
+// Process media URLs in edit preview
+const processEditPreviewMedia = async () => {
+  await nextTick()
+  if (editPreviewRef.value) {
+    processMediaUrls(editPreviewRef.value)
+  }
+}
+
 // Watch for comment changes to process media
 watch(comments, processCommentsMedia, { deep: true })
+
+// Watch for edit text changes to process media in preview
+watch(editText, processEditPreviewMedia)
 
 onMounted(() => {
   processCommentsMedia()
 })
 
-onUnmounted(() => {
-  clearBlobCache()
-})
+// Note: Don't clear blob cache on unmount - it causes issues when re-opening
+// The cache will be cleared on page refresh which is acceptable
 
 // Delete functions
 const confirmDelete = (commentId) => {
@@ -336,6 +345,7 @@ const insertAtEditCursor = (text) => {
             <div v-if="editText" class="pt-3 border-t border-gray-200">
               <h4 class="text-sm font-medium text-gray-700 mb-2">Podglad:</h4>
               <div
+                ref="editPreviewRef"
                 class="markdown-content prose prose-sm max-w-none p-3 bg-white rounded-lg border border-gray-200"
                 v-html="editPreview"
               ></div>
@@ -426,23 +436,19 @@ const insertAtEditCursor = (text) => {
       </h3>
 
       <div class="space-y-4">
-        <!-- Done tasks -->
-        <div v-if="tasksByStatus['Done'].length > 0">
-          <h4 class="text-sm font-medium text-gray-500 mb-2">Ukończone</h4>
+        <!-- To Do tasks -->
+        <div v-if="tasksByStatus['To Do'].length > 0">
+          <h4 class="text-sm font-medium text-gray-500 mb-2">Do zrobienia</h4>
           <div class="space-y-2">
             <a
-              v-for="task in tasksByStatus['Done']"
+              v-for="task in tasksByStatus['To Do']"
               :key="task.key"
               :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
               :target="sprint.jiraBaseUrl ? '_blank' : undefined"
               :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
-              class="flex items-center gap-3 p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+              class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <span class="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center">
-                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-              </span>
+              <span class="flex-shrink-0 w-5 h-5 rounded-full border-2 border-gray-300"></span>
               <div class="flex-1 min-w-0">
                 <span class="text-xs font-mono text-gray-500">{{ task.key }}</span>
                 <p class="text-sm text-gray-900">{{ task.summary }}</p>
@@ -476,19 +482,23 @@ const insertAtEditCursor = (text) => {
           </div>
         </div>
 
-        <!-- To Do tasks -->
-        <div v-if="tasksByStatus['To Do'].length > 0">
-          <h4 class="text-sm font-medium text-gray-500 mb-2">Do zrobienia</h4>
+        <!-- Done tasks -->
+        <div v-if="tasksByStatus['Done'].length > 0">
+          <h4 class="text-sm font-medium text-gray-500 mb-2">Ukończone</h4>
           <div class="space-y-2">
             <a
-              v-for="task in tasksByStatus['To Do']"
+              v-for="task in tasksByStatus['Done']"
               :key="task.key"
               :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
               :target="sprint.jiraBaseUrl ? '_blank' : undefined"
               :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
-              class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              class="flex items-center gap-3 p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
             >
-              <span class="flex-shrink-0 w-5 h-5 rounded-full border-2 border-gray-300"></span>
+              <span class="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+              </span>
               <div class="flex-1 min-w-0">
                 <span class="text-xs font-mono text-gray-500">{{ task.key }}</span>
                 <p class="text-sm text-gray-900">{{ task.summary }}</p>

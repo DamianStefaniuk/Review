@@ -137,12 +137,15 @@ const generatePdfContent = () => {
   html += `<h2>Wszystkie zadania</h2>`
 
   const tasksByStatus = {
-    'Done': sprint.tasks.filter(t => t.status === 'Done'),
+    'To Do': sprint.tasks.filter(t => t.status === 'To Do'),
     'In Progress': sprint.tasks.filter(t => t.status === 'In Progress'),
-    'To Do': sprint.tasks.filter(t => t.status === 'To Do')
+    'Done': sprint.tasks.filter(t => t.status === 'Done')
   }
 
-  Object.entries(tasksByStatus).forEach(([status, tasks]) => {
+  // Iterate in specific order: To Do, In Progress, Done
+  const statusOrder = ['To Do', 'In Progress', 'Done']
+  statusOrder.forEach(status => {
+    const tasks = tasksByStatus[status]
     if (tasks.length > 0) {
       const statusClass = status === 'Done' ? 'status-done' : status === 'In Progress' ? 'status-progress' : 'status-todo'
       html += `<h3 class="${statusClass}">${status} (${tasks.length})</h3>`
