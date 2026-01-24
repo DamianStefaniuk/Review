@@ -1,9 +1,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useMarkdownEditor } from '../composables/useMarkdownEditor'
-import MediaUploader from './MediaUploader.vue'
 import MediaPickerModal from './MediaPickerModal.vue'
 import { generateMediaMarkdown } from '../utils/markdownMedia'
+import { validateFile, uploadMedia, getFileCategory } from '../services/mediaService'
 
 const props = defineProps({
   textareaRef: {
@@ -44,8 +44,14 @@ watch(localValue, (newVal) => {
 })
 
 // Media state
-const showMediaUploader = ref(false)
 const showMediaPicker = ref(false)
+const isUploading = ref(false)
+const uploadProgress = ref(0)
+const uploadError = ref(null)
+const isDragging = ref(false)
+
+// File input ref
+const fileInputRef = ref(null)
 
 // Initialize markdown editor composable
 const {
@@ -88,26 +94,117 @@ const handleLink = () => {
   }
 }
 
+// Direct file upload - open file explorer immediately
 const handleUploadClick = () => {
-  if (props.disabled) return
-  showMediaUploader.value = !showMediaUploader.value
-  showMediaPicker.value = false
+  if (props.disabled || isUploading.value) return
+  fileInputRef.value?.click()
 }
 
 const handleGalleryClick = () => {
   if (props.disabled) return
   showMediaPicker.value = true
-  showMediaUploader.value = false
 }
 
-const handleMediaUpload = (result) => {
-  const markdown = generateMediaMarkdown(result)
-  insertMedia(markdown)
-  showMediaUploader.value = false
+// Handle file from input, paste or drop
+const handleFile = async (file) => {
+  if (!file || props.disabled || isUploading.value) return
+
+  uploadError.value = null
+
+  // Validate
+  const validation = validateFile(file)
+  if (!validation.valid) {
+    uploadError.value = validation.error
+    setTimeout(() => { uploadError.value = null }, 4000)
+    return
+  }
+
+  // Start upload immediately
+  isUploading.value = true
+  uploadProgress.value = 0
+
+  try {
+    const result = await uploadMedia(
+      props.sprintId,
+      file,
+      (progress) => {
+        uploadProgress.value = progress
+      }
+    )
+
+    const markdown = generateMediaMarkdown(result)
+    insertMedia(markdown)
+  } catch (error) {
+    uploadError.value = error.message
+    setTimeout(() => { uploadError.value = null }, 4000)
+  } finally {
+    isUploading.value = false
+    uploadProgress.value = 0
+    // Reset file input
+    if (fileInputRef.value) {
+      fileInputRef.value.value = ''
+    }
+  }
 }
 
-const handleMediaError = (error) => {
-  console.error('Media upload error:', error)
+// File input change handler
+const onFileInputChange = (event) => {
+  const file = event.target.files?.[0]
+  if (file) {
+    handleFile(file)
+  }
+}
+
+// Paste handler for Ctrl+V
+const handlePaste = (event) => {
+  if (props.disabled || !props.showMediaButtons) return
+
+  const items = event.clipboardData?.items
+  if (!items) return
+
+  for (const item of items) {
+    if (item.type.startsWith('image/') || item.type.startsWith('video/')) {
+      const file = item.getAsFile()
+      if (file) {
+        event.preventDefault()
+        handleFile(file)
+        break
+      }
+    }
+  }
+}
+
+// Drag and drop handlers
+const handleDragEnter = (event) => {
+  if (props.disabled || !props.showMediaButtons) return
+  event.preventDefault()
+  isDragging.value = true
+}
+
+const handleDragOver = (event) => {
+  if (props.disabled || !props.showMediaButtons) return
+  event.preventDefault()
+  isDragging.value = true
+}
+
+const handleDragLeave = (event) => {
+  event.preventDefault()
+  isDragging.value = false
+}
+
+const handleDrop = (event) => {
+  event.preventDefault()
+  isDragging.value = false
+
+  if (props.disabled || !props.showMediaButtons) return
+
+  const file = event.dataTransfer?.files?.[0]
+  if (file) {
+    // Check if it's a media file
+    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+      handleFile(file)
+    }
+  }
 }
 
 const handleMediaSelect = (result) => {
@@ -144,36 +241,60 @@ const handleKeydown = (event) => {
   }
 }
 
-// Register keyboard shortcuts on the textarea
+// Register event listeners on the textarea
+const attachTextareaListeners = (textarea) => {
+  if (!textarea) return
+  textarea.addEventListener('keydown', handleKeydown)
+  textarea.addEventListener('paste', handlePaste)
+  textarea.addEventListener('dragenter', handleDragEnter)
+  textarea.addEventListener('dragover', handleDragOver)
+  textarea.addEventListener('dragleave', handleDragLeave)
+  textarea.addEventListener('drop', handleDrop)
+}
+
+const detachTextareaListeners = (textarea) => {
+  if (!textarea) return
+  textarea.removeEventListener('keydown', handleKeydown)
+  textarea.removeEventListener('paste', handlePaste)
+  textarea.removeEventListener('dragenter', handleDragEnter)
+  textarea.removeEventListener('dragover', handleDragOver)
+  textarea.removeEventListener('dragleave', handleDragLeave)
+  textarea.removeEventListener('drop', handleDrop)
+}
+
 onMounted(() => {
   const textarea = props.textareaRef
-  if (textarea) {
-    textarea.addEventListener('keydown', handleKeydown)
-  }
+  attachTextareaListeners(textarea)
 })
 
 onUnmounted(() => {
   const textarea = props.textareaRef
-  if (textarea) {
-    textarea.removeEventListener('keydown', handleKeydown)
-  }
+  detachTextareaListeners(textarea)
 })
 
 // Watch for textarea ref changes
 watch(() => props.textareaRef, (newRef, oldRef) => {
-  if (oldRef) {
-    oldRef.removeEventListener('keydown', handleKeydown)
-  }
-  if (newRef) {
-    newRef.addEventListener('keydown', handleKeydown)
-  }
+  detachTextareaListeners(oldRef)
+  attachTextareaListeners(newRef)
 })
 </script>
 
 <template>
   <div>
+    <!-- Hidden file input -->
+    <input
+      ref="fileInputRef"
+      type="file"
+      accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm"
+      class="hidden"
+      @change="onFileInputChange"
+    />
+
     <!-- Toolbar -->
-    <div class="flex items-center gap-1 px-2 py-1.5 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+    <div
+      class="flex items-center gap-1 px-2 py-1.5 border-b border-gray-200 bg-gray-50 rounded-t-lg"
+      :class="{ 'bg-primary-50 border-primary-300': isDragging }"
+    >
       <!-- Bold -->
       <button
         type="button"
@@ -262,20 +383,19 @@ watch(() => props.textareaRef, (newRef, oldRef) => {
         <!-- Separator -->
         <div class="w-px h-5 bg-gray-300 mx-1"></div>
 
-        <!-- Upload media -->
+        <!-- Upload media (opens file explorer directly) -->
         <button
           type="button"
           @click="handleUploadClick"
-          :disabled="disabled"
-          :class="[
-            'p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-            showMediaUploader
-              ? 'text-primary-700 bg-primary-100 hover:bg-primary-200'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-          ]"
-          title="Dodaj media (upload)"
+          :disabled="disabled || isUploading"
+          class="p-1.5 rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Dodaj media (upload, Ctrl+V lub przeciagnij)"
         >
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg v-if="isUploading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <svg v-else class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         </button>
@@ -295,16 +415,26 @@ watch(() => props.textareaRef, (newRef, oldRef) => {
             <rect x="14" y="14" width="7" height="7" rx="1"/>
           </svg>
         </button>
-      </template>
-    </div>
 
-    <!-- Media Uploader -->
-    <div v-if="showMediaUploader && showMediaButtons" class="p-3 border-b border-gray-200 bg-gray-50">
-      <MediaUploader
-        :sprint-id="sprintId"
-        @upload="handleMediaUpload"
-        @error="handleMediaError"
-      />
+        <!-- Upload progress indicator -->
+        <div v-if="isUploading" class="flex items-center gap-2 ml-2 text-xs text-gray-500">
+          <div class="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              class="h-full bg-primary-500 transition-all duration-300"
+              :style="{ width: uploadProgress + '%' }"
+            ></div>
+          </div>
+          <span>{{ uploadProgress }}%</span>
+        </div>
+
+        <!-- Upload error -->
+        <div v-if="uploadError" class="flex items-center gap-1 ml-2 text-xs text-red-600">
+          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+          <span class="truncate max-w-48">{{ uploadError }}</span>
+        </div>
+      </template>
     </div>
 
     <!-- Media Picker Modal -->
