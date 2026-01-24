@@ -37,12 +37,28 @@ const sortedTasks = computed(() => {
     if (sortBy.value === 'epic') {
       const epicA = a.epic || 'zzz'
       const epicB = b.epic || 'zzz'
-      return epicA.localeCompare(epicB)
+      const epicCompare = epicA.localeCompare(epicB)
+      if (epicCompare !== 0) return epicCompare
+      // Within same epic, sort by status
+      return statusOrder[b.status] - statusOrder[a.status]
     }
     if (sortBy.value === 'assignee') {
-      const assigneeA = a.assignee || 'zzz'
-      const assigneeB = b.assignee || 'zzz'
-      return assigneeA.localeCompare(assigneeB)
+      // Tasks with assignee come first, sorted alphabetically
+      // Tasks without assignee come last
+      const hasAssigneeA = !!a.assignee
+      const hasAssigneeB = !!b.assignee
+
+      if (hasAssigneeA && !hasAssigneeB) return -1
+      if (!hasAssigneeA && hasAssigneeB) return 1
+
+      if (hasAssigneeA && hasAssigneeB) {
+        // Both have assignees - sort by assignee name, then by status
+        const assigneeCompare = a.assignee.localeCompare(b.assignee)
+        if (assigneeCompare !== 0) return assigneeCompare
+      }
+
+      // Within same assignee (or both without), sort by status
+      return statusOrder[b.status] - statusOrder[a.status]
     }
     return 0
   })

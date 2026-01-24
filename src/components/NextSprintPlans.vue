@@ -65,6 +65,22 @@ const processEditPreviewMedia = async () => {
 
 watch(editContent, processEditPreviewMedia)
 
+// Process media when entering/exiting edit mode
+watch(isEditing, async (newValue, oldValue) => {
+  await nextTick()
+  if (newValue === true) {
+    // Entering edit mode - process media in preview
+    if (editPreviewRef.value) {
+      processMediaUrls(editPreviewRef.value)
+    }
+  } else if (oldValue === true && newValue === false) {
+    // Exiting edit mode - process media in view mode
+    if (contentRef.value) {
+      processMediaUrls(contentRef.value)
+    }
+  }
+})
+
 onMounted(() => {
   if (contentRef.value) {
     processMediaUrls(contentRef.value)

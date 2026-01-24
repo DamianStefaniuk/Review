@@ -149,6 +149,20 @@ watch(comments, processCommentsMedia, { deep: true })
 // Watch for edit text changes to process media in preview
 watch(editText, processEditPreviewMedia)
 
+// Process media when entering/exiting comment edit mode
+watch(editingCommentId, async (newValue, oldValue) => {
+  await nextTick()
+  if (newValue !== null) {
+    // Entering edit mode - process media in preview
+    if (editPreviewRef.value) {
+      processMediaUrls(editPreviewRef.value)
+    }
+  } else if (oldValue !== null && newValue === null) {
+    // Exiting edit mode - process media in comments
+    processCommentsMedia()
+  }
+})
+
 onMounted(() => {
   processCommentsMedia()
 })
