@@ -29,13 +29,24 @@ const exportToPdf = async () => {
     const content = document.createElement('div')
     content.innerHTML = generatePdfContent()
     content.style.padding = '20px'
+    content.style.backgroundColor = '#ffffff'
     document.body.appendChild(content)
+
+    // Wait for fonts and DOM to be ready
+    await new Promise(resolve => setTimeout(resolve, 100))
+    await document.fonts.ready
 
     const options = {
       margin: 10,
       filename: `${props.sprint.name.replace(/\s+/g, '-')}-review.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        letterRendering: true,
+        allowTaint: true,
+        logging: false
+      },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     }
 
@@ -56,7 +67,7 @@ const generatePdfContent = () => {
 
   let html = `
     <style>
-      * { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+      * { font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
       h1 { color: #1e40af; margin-bottom: 5px; }
       h2 { color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-top: 24px; }
       h3 { color: #4b5563; margin-top: 16px; }
@@ -68,7 +79,7 @@ const generatePdfContent = () => {
       .progress-bar { background: #3b82f6; height: 100%; border-radius: 4px; }
       .task { padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
       .task:last-child { border-bottom: none; }
-      .task-key { color: #9ca3af; font-family: monospace; font-size: 12px; }
+      .task-key { color: #9ca3af; font-family: 'Courier New', Courier, monospace; font-size: 12px; }
       .status-done { color: #059669; }
       .status-progress { color: #2563eb; }
       .status-todo { color: #6b7280; }

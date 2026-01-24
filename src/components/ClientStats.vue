@@ -61,15 +61,20 @@ const toggleClient = (clientName) => {
   expandedClients.value = newSet
 }
 
-// Unikalny klucz dla celu (łączy klienta z ID, aby uniknąć konfliktów)
-const getGoalKey = (clientName, goalId) => `${clientName}::${goalId}`
+// Unikalny klucz dla celu (łączy klienta, typ celu i ID, aby uniknąć konfliktów)
+const getGoalKey = (clientName, goalId, isSideGoal = false) => {
+  const type = isSideGoal ? 'side' : 'main'
+  return `${clientName}::${type}::${goalId}`
+}
 
 // Sprawdź czy cel jest rozwinięty
-const isGoalExpanded = (clientName, goalId) => expandedGoals.value.has(getGoalKey(clientName, goalId))
+const isGoalExpanded = (clientName, goalId, isSideGoal = false) => {
+  return expandedGoals.value.has(getGoalKey(clientName, goalId, isSideGoal))
+}
 
 // Toggle pojedynczego celu
-const toggleGoal = (clientName, goalId) => {
-  const key = getGoalKey(clientName, goalId)
+const toggleGoal = (clientName, goalId, isSideGoal = false) => {
+  const key = getGoalKey(clientName, goalId, isSideGoal)
   const newSet = new Set(expandedGoals.value)
   if (newSet.has(key)) {
     newSet.delete(key)
@@ -270,7 +275,7 @@ const statusColors = {
                 <div v-for="goal in getClientGoals(client.name)" :key="goal.id">
                   <!-- Cel - klikalny element -->
                   <button
-                    @click="toggleGoal(client.name, goal.id)"
+                    @click="toggleGoal(client.name, goal.id, false)"
                     class="w-full p-3 rounded-lg border transition-all text-left"
                     :class="getGoalGradient(goal, false)"
                   >
@@ -296,7 +301,7 @@ const statusColors = {
                         </div>
                         <svg
                           class="w-4 h-4 text-gray-400 transition-transform duration-200"
-                          :class="{ 'rotate-180': isGoalExpanded(client.name, goal.id) }"
+                          :class="{ 'rotate-180': isGoalExpanded(client.name, goal.id, false) }"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -308,7 +313,7 @@ const statusColors = {
                   </button>
 
                   <!-- Zadania pod celem - grupowane po epicach -->
-                  <div v-if="isGoalExpanded(client.name, goal.id)" class="mt-2 ml-7">
+                  <div v-if="isGoalExpanded(client.name, goal.id, false)" class="mt-2 ml-7">
                     <!-- Widok z grupami epiców -->
                     <template v-if="getTasksByEpic(goal, false)">
                       <div v-for="(epicTasks, epicName) in getTasksByEpic(goal, false)" :key="epicName">
@@ -400,7 +405,7 @@ const statusColors = {
                 <div v-for="sideGoal in getClientSideGoals(client.name)" :key="sideGoal.id">
                   <!-- Cel poboczny - klikalny element -->
                   <button
-                    @click="toggleGoal(client.name, sideGoal.id)"
+                    @click="toggleGoal(client.name, sideGoal.id, true)"
                     class="w-full p-3 rounded-lg border transition-all text-left"
                     :class="getGoalGradient(sideGoal, true)"
                   >
@@ -426,7 +431,7 @@ const statusColors = {
                         </div>
                         <svg
                           class="w-4 h-4 text-gray-400 transition-transform duration-200"
-                          :class="{ 'rotate-180': isGoalExpanded(client.name, sideGoal.id) }"
+                          :class="{ 'rotate-180': isGoalExpanded(client.name, sideGoal.id, true) }"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -438,7 +443,7 @@ const statusColors = {
                   </button>
 
                   <!-- Zadania pod celem pobocznym - grupowane po epicach -->
-                  <div v-if="isGoalExpanded(client.name, sideGoal.id)" class="mt-2 ml-7">
+                  <div v-if="isGoalExpanded(client.name, sideGoal.id, true)" class="mt-2 ml-7">
                     <!-- Widok z grupami epiców -->
                     <template v-if="getTasksByEpic(sideGoal, true)">
                       <div v-for="(epicTasks, epicName) in getTasksByEpic(sideGoal, true)" :key="epicName">
