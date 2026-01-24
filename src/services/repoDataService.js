@@ -513,11 +513,10 @@ export async function fetchBinaryFile(path) {
     }
     return new Blob([bytes], { type: mimeType })
   } else if (data.download_url) {
-    // Large file - fetch from download_url (requires token for private repos)
+    // Large file - fetch from download_url
+    // Note: For private repos, download_url already contains token as query parameter
+    // Adding Authorization header would trigger CORS preflight which raw.githubusercontent.com rejects
     const downloadResponse = await fetch(data.download_url, {
-      headers: {
-        'Authorization': `Bearer ${config.token}`
-      },
       cache: 'no-store'
     })
 
