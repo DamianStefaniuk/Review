@@ -30,10 +30,9 @@ function createMediaRenderer() {
       const altText = text || 'media'
 
       if (isVideo) {
-        // Video element with placeholder
+        // Video element with placeholder (no source element - src will be set by processMediaUrls)
         return `<div class="media-container media-loading" ${dataAttr}>
           <video controls class="media-video" data-src="${href}" title="${title || ''}">
-            <source src="" type="video/mp4">
             Twoja przeglądarka nie obsługuje video.
           </video>
           <div class="media-placeholder">
@@ -132,13 +131,23 @@ export async function processMediaUrls(container) {
       }
 
       if (video) {
+        // Remove empty source element that might interfere with loading
+        const source = video.querySelector('source')
+        if (source) {
+          source.remove()
+        }
+
         video.src = blobUrl
+        // Explicitly trigger loading - required in some browsers after component re-render
+        video.load()
+
         video.onloadeddata = () => {
           mediaDiv.classList.remove('media-loading')
           const placeholder = mediaDiv.querySelector('.media-placeholder')
           if (placeholder) placeholder.remove()
         }
         video.onerror = () => {
+          mediaDiv.classList.remove('media-loading')
           mediaDiv.classList.add('media-error')
           const placeholder = mediaDiv.querySelector('.media-placeholder')
           if (placeholder) {
