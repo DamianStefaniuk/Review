@@ -38,6 +38,18 @@ const deleteLoading = ref(false)
 // Rename loading state
 const renameLoading = ref(false)
 
+// Success message state
+const successMessage = ref(null)
+const successTimeout = ref(null)
+
+const showSuccess = (message) => {
+  if (successTimeout.value) clearTimeout(successTimeout.value)
+  successMessage.value = message
+  successTimeout.value = setTimeout(() => {
+    successMessage.value = null
+  }, 4000)
+}
+
 // Computed
 const mediaCount = computed(() => mediaList.value.length)
 
@@ -112,6 +124,13 @@ const saveEdit = async () => {
         displayName: newDisplayName,
         name: result.path.split('/').pop()
       }
+    }
+
+    // Show success message with info about updated references
+    if (result.referencesUpdated > 0) {
+      showSuccess(`Zmieniono nazwe i zaktualizowano ${result.referencesUpdated} ${result.referencesUpdated === 1 ? 'referencje' : 'referencji'} w sprincie`)
+    } else {
+      showSuccess('Zmieniono nazwe pliku')
     }
 
     cancelEdit()
@@ -197,6 +216,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   clearBlobCache()
+  if (successTimeout.value) clearTimeout(successTimeout.value)
 })
 </script>
 
@@ -254,6 +274,17 @@ onUnmounted(() => {
         :sprint-id="sprintId"
         @upload="handleUploadComplete"
       />
+    </div>
+
+    <!-- Success message -->
+    <div
+      v-if="successMessage"
+      class="mx-4 mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700"
+    >
+      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+      <span class="text-sm">{{ successMessage }}</span>
     </div>
 
     <!-- Content -->

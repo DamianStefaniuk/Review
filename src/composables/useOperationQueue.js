@@ -22,7 +22,8 @@ import {
   getMediaPath,
   getFileCategory,
   deleteMedia,
-  renameMedia
+  renameMedia,
+  updateMediaReferencesInSprint
 } from '../services/mediaService'
 
 export function useOperationQueue() {
@@ -402,7 +403,16 @@ export function useOperationQueue() {
       priority: PRIORITY.NORMAL,
       timeout: 120000, // 120 seconds for download/upload
       execute: async () => {
-        return await renameMedia(oldPath, newDisplayName, sprintId, oldSha)
+        // First rename the file
+        const result = await renameMedia(oldPath, newDisplayName, sprintId, oldSha)
+
+        // Then update all references in sprint data (achievements, nextSprintPlans, comments)
+        if (result.path !== oldPath) {
+          const refResult = await updateMediaReferencesInSprint(sprintId, oldPath, result.path)
+          return { ...result, referencesUpdated: refResult.count }
+        }
+
+        return { ...result, referencesUpdated: 0 }
       },
       ...callbacks
     })

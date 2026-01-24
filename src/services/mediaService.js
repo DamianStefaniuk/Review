@@ -359,3 +359,92 @@ export async function renameMedia(oldPath, newDisplayName, sprintId, oldSha) {
 
   return { path: newPath, sha: result.sha }
 }
+
+/**
+ * Find and update all references to a media path in sprint data
+ * Searches through achievements, nextSprintPlans, and all comments
+ * @param {number|string} sprintId - Sprint ID
+ * @param {string} oldPath - Old media path to find
+ * @param {string} newPath - New media path to replace with
+ * @returns {Promise<{updated: boolean, count: number}>} - Whether any updates were made and count of replacements
+ */
+export async function updateMediaReferencesInSprint(sprintId, oldPath, newPath) {
+  const { fetchRepoFile, updateRepoFile } = await import('./repoDataService')
+
+  const filename = `sprint-${sprintId}.json`
+  const result = await fetchRepoFile(filename)
+
+  if (!result) {
+    return { updated: false, count: 0 }
+  }
+
+  const sprintData = result.content
+  let totalReplacements = 0
+
+  // Helper function to replace path in a string
+  const replacePath = (text) => {
+    if (!text || typeof text !== 'string') return { text, count: 0 }
+    // Escape special regex characters in the path
+    const escapedOldPath = oldPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const regex = new RegExp(escapedOldPath, 'g')
+    const matches = text.match(regex)
+    const count = matches ? matches.length : 0
+    return {
+      text: text.replace(regex, newPath),
+      count
+    }
+  }
+
+  // Update achievements
+  if (sprintData.achievements) {
+    const { text, count } = replacePath(sprintData.achievements)
+    sprintData.achievements = text
+    totalReplacements += count
+  }
+
+  // Update nextSprintPlans
+  if (sprintData.nextSprintPlans) {
+    const { text, count } = replacePath(sprintData.nextSprintPlans)
+    sprintData.nextSprintPlans = text
+    totalReplacements += count
+  }
+
+  // Update goal comments
+  if (sprintData.goals && Array.isArray(sprintData.goals)) {
+    for (const goal of sprintData.goals) {
+      if (goal.comments && Array.isArray(goal.comments)) {
+        for (const comment of goal.comments) {
+          if (comment.text) {
+            const { text, count } = replacePath(comment.text)
+            comment.text = text
+            totalReplacements += count
+          }
+        }
+      }
+    }
+  }
+
+  // Update side goal comments
+  if (sprintData.sideGoals && Array.isArray(sprintData.sideGoals)) {
+    for (const goal of sprintData.sideGoals) {
+      if (goal.comments && Array.isArray(goal.comments)) {
+        for (const comment of goal.comments) {
+          if (comment.text) {
+            const { text, count } = replacePath(comment.text)
+            comment.text = text
+            totalReplacements += count
+          }
+        }
+      }
+    }
+  }
+
+  // Save if any changes were made
+  if (totalReplacements > 0) {
+    delete sprintData._sha
+    await updateRepoFile(filename, sprintData, result.sha)
+    return { updated: true, count: totalReplacements }
+  }
+
+  return { updated: false, count: 0 }
+}
