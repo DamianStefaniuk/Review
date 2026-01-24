@@ -28,6 +28,7 @@ const loading = ref(true)
 const error = ref(null)
 const selectedGoal = ref(null)
 const activeTab = ref('overview')
+const refreshKey = ref(0)
 
 const loadSprintData = async (sprintId) => {
   loading.value = true
@@ -173,6 +174,23 @@ const handleAchievementsUpdate = (newContent) => {
   // Update local sprint data
   if (sprint.value) {
     sprint.value.achievements = newContent
+  }
+}
+
+const handleSprintDataRefresh = async () => {
+  // Silently reload sprint data from repository after media references were updated
+  // Don't set loading state to avoid UI flicker
+  const id = route.params.sprintId || sprint.value?.id
+  if (!id) return
+
+  try {
+    const freshData = await loadSprint(id)
+    // Update sprint data reactively
+    sprint.value = freshData
+    // Increment key to force re-render of components that display markdown
+    refreshKey.value++
+  } catch (err) {
+    console.error('Failed to refresh sprint data:', err)
   }
 }
 
@@ -370,12 +388,14 @@ onMounted(() => {
 
             <SideGoalsList
               v-if="sprint.sideGoals && sprint.sideGoals.length > 0"
+              :key="'sidegoals-' + refreshKey"
               :side-goals="sprint.sideGoals"
               :sprint="sprint"
               @select-goal="handleSelectGoal"
             />
 
             <AchievementsList
+              :key="'achievements-' + refreshKey"
               :content="sprint.achievements"
               :sprint-id="sprint.id"
               @update="handleAchievementsUpdate"
@@ -385,6 +405,7 @@ onMounted(() => {
           <div class="space-y-6">
             <GoalDetail
               v-if="selectedGoal"
+              :key="'goaldetail-' + refreshKey"
               :goal="selectedGoal"
               :sprint="sprint"
               @close="handleCloseGoal"
@@ -419,6 +440,7 @@ onMounted(() => {
         <template v-if="activeTab === 'next'">
           <div class="lg:col-span-3">
             <NextSprintPlans
+              :key="'nextplans-' + refreshKey"
               :content="sprint.nextSprintPlans"
               :jira-timeline-url="sprint.jiraTimelineUrl"
               :sprint-id="sprint.id"
@@ -433,6 +455,7 @@ onMounted(() => {
             <MediaManager
               :sprint-id="sprint.id"
               :is-sprint-active="sprint.status === 'active'"
+              @sprint-updated="handleSprintDataRefresh"
             />
           </div>
         </template>

@@ -15,6 +15,8 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits(['sprint-updated'])
+
 const { queueDeleteMedia, queueRenameMedia } = useOperationQueue()
 
 // State
@@ -129,6 +131,8 @@ const saveEdit = async () => {
     // Show success message with info about updated references
     if (result.referencesUpdated > 0) {
       showSuccess(`Zmieniono nazwe i zaktualizowano ${result.referencesUpdated} ${result.referencesUpdated === 1 ? 'referencje' : 'referencji'} w sprincie`)
+      // Notify parent to refresh sprint data
+      emit('sprint-updated')
     } else {
       showSuccess('Zmieniono nazwe pliku')
     }
