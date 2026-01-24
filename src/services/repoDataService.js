@@ -461,6 +461,61 @@ export async function uploadBinaryFile(path, base64Content, commitMessage = null
 }
 
 /**
+ * List contents of a directory in the repository
+ * @param {string} path - Directory path in repository
+ * @returns {Promise<Array<{name: string, path: string, sha: string, size: number, type: string}>>}
+ */
+export async function listDirectoryContents(path) {
+  const config = await getRepoConfig()
+  if (!config) throw new Error('Repository not configured')
+
+  const url = `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${path}`
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${config.token}`,
+      'Accept': 'application/vnd.github.v3+json'
+    },
+    cache: 'no-store'
+  })
+
+  if (response.status === 404) return []
+  if (!response.ok) throw new Error(`Failed to list directory: ${response.status}`)
+
+  const files = await response.json()
+  return files.map(f => ({ name: f.name, path: f.path, sha: f.sha, size: f.size, type: f.type }))
+}
+
+/**
+ * Delete a file from the repository
+ * @param {string} path - File path in repository
+ * @param {string} sha - SHA of the file to delete
+ * @param {string} message - Optional commit message
+ * @returns {Promise<void>}
+ */
+export async function deleteRepoFile(path, sha, message = null) {
+  const config = await getRepoConfig()
+  if (!config) throw new Error('Repository not configured')
+
+  const response = await fetch(
+    `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${path}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${config.token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      body: JSON.stringify({ message: message || `Delete ${path.split('/').pop()}`, sha })
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(`Failed to delete: ${error.message || response.status}`)
+  }
+}
+
+/**
  * Fetch a binary file from the repository as Blob
  * @param {string} path - Full path in repository
  * @returns {Promise<Blob>}

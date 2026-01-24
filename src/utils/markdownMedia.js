@@ -102,9 +102,7 @@ export async function processMediaUrls(container) {
     if (!path) return
 
     try {
-      console.log(`[Media] Loading: ${path}`)
       const blobUrl = await getMediaUrl(path)
-      console.log(`[Media] Got blob URL for: ${path}`, blobUrl)
 
       // Update image or video source
       const img = mediaDiv.querySelector('img[data-src]')
@@ -113,7 +111,6 @@ export async function processMediaUrls(container) {
       if (img) {
         img.src = blobUrl
         img.onload = () => {
-          console.log(`[Media] Image loaded successfully: ${path}`)
           mediaDiv.classList.remove('media-loading')
           const placeholder = mediaDiv.querySelector('.media-placeholder')
           if (placeholder) placeholder.remove()

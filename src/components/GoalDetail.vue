@@ -52,6 +52,20 @@ const tasks = computed(() => {
 
 const comments = computed(() => props.goal.comments || [])
 
+// Sortowanie zadań wg assignee (jak w AllTasks przy sortowaniu po statusie)
+const sortTasksByAssignee = (taskList) => {
+  return [...taskList].sort((a, b) => {
+    const hasAssigneeA = !!a.assignee
+    const hasAssigneeB = !!b.assignee
+    if (hasAssigneeA && !hasAssigneeB) return -1
+    if (!hasAssigneeA && hasAssigneeB) return 1
+    if (hasAssigneeA && hasAssigneeB) {
+      return a.assignee.localeCompare(b.assignee)
+    }
+    return 0
+  })
+}
+
 const tasksByStatus = computed(() => {
   const grouped = {
     'Done': [],
@@ -65,7 +79,12 @@ const tasksByStatus = computed(() => {
       grouped['To Do'].push(task)
     }
   })
-  return grouped
+  // Sortuj zadania w każdej grupie
+  return {
+    'Done': sortTasksByAssignee(grouped['Done']),
+    'In Progress': sortTasksByAssignee(grouped['In Progress']),
+    'To Do': sortTasksByAssignee(grouped['To Do'])
+  }
 })
 
 const formatDate = (dateStr) => {

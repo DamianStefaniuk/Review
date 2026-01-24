@@ -190,14 +190,10 @@ export async function fetchMediaBlob(path) {
 export async function getMediaUrl(path) {
   // Check cache first
   if (blobUrlCache.has(path)) {
-    console.log(`[Media] Using cached blob URL for: ${path}`)
     return blobUrlCache.get(path)
   }
 
-  console.log(`[Media] Fetching blob for: ${path}`)
   const blob = await fetchMediaBlob(path)
-  console.log(`[Media] Got blob:`, { path, type: blob.type, size: blob.size })
-
   const blobUrl = URL.createObjectURL(blob)
 
   // Cache the URL
@@ -246,4 +242,79 @@ export function revokeBlobUrl(path) {
     URL.revokeObjectURL(blobUrlCache.get(path))
     blobUrlCache.delete(path)
   }
+}
+
+/**
+ * List all media files for a specific sprint
+ * @param {number|string} sprintId - Sprint ID
+ * @returns {Promise<Array<{name: string, path: string, sha: string, size: number, displayName: string, timestamp: number, extension: string, type: string}>>}
+ */
+export async function listMediaForSprint(sprintId) {
+  const { listDirectoryContents } = await import('./repoDataService')
+  const dirPath = `media/sprint-${sprintId}`
+
+  try {
+    const files = await listDirectoryContents(dirPath)
+    return files
+      .filter(f => f.type === 'file')
+      .map(f => {
+        const ext = f.name.split('.').pop().toLowerCase()
+        const nameWithoutExt = f.name.substring(0, f.name.lastIndexOf('.'))
+        const [timestampStr, ...nameParts] = nameWithoutExt.split('_')
+        return {
+          name: f.name,
+          path: f.path,
+          sha: f.sha,
+          size: f.size,
+          displayName: nameParts.join('_') || f.name,
+          timestamp: parseInt(timestampStr, 10) || 0,
+          extension: ext,
+          type: ['mp4', 'webm'].includes(ext) ? 'video' : 'image'
+        }
+      })
+      .sort((a, b) => b.timestamp - a.timestamp)
+  } catch (error) {
+    if (error.message.includes('404')) return []
+    throw error
+  }
+}
+
+/**
+ * Delete a media file
+ * @param {string} path - Path to the media file
+ * @param {string} sha - SHA of the file to delete
+ * @returns {Promise<void>}
+ */
+export async function deleteMedia(path, sha) {
+  const { deleteRepoFile } = await import('./repoDataService')
+  revokeBlobUrl(path)
+  await deleteRepoFile(path, sha)
+}
+
+/**
+ * Rename a media file (download, upload with new name, delete old)
+ * @param {string} oldPath - Current path of the media
+ * @param {string} newDisplayName - New display name (without timestamp and extension)
+ * @param {number|string} sprintId - Sprint ID
+ * @param {string} oldSha - SHA of the current file
+ * @returns {Promise<{path: string, sha: string}>}
+ */
+export async function renameMedia(oldPath, newDisplayName, sprintId, oldSha) {
+  const { uploadBinaryFile, deleteRepoFile } = await import('./repoDataService')
+
+  const ext = oldPath.split('.').pop()
+  const oldTimestamp = oldPath.split('/').pop().split('_')[0]
+  const sanitized = newDisplayName.replace(/[/\\:*?"<>|]/g, '').replace(/\s+/g, '_') || 'media'
+  const newPath = `media/sprint-${sprintId}/${oldTimestamp}_${sanitized}.${ext}`
+
+  if (oldPath === newPath) return { path: oldPath, sha: oldSha }
+
+  const blob = await fetchMediaBlob(oldPath)
+  const base64 = btoa(new Uint8Array(await blob.arrayBuffer()).reduce((d, b) => d + String.fromCharCode(b), ''))
+
+  const result = await uploadBinaryFile(newPath, base64, `Rename media`)
+  await deleteRepoFile(oldPath, oldSha)
+  revokeBlobUrl(oldPath)
+
+  return { path: newPath, sha: result.sha }
 }

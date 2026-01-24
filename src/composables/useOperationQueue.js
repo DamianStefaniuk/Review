@@ -20,7 +20,9 @@ import {
   fileToBase64,
   generateFileName,
   getMediaPath,
-  getFileCategory
+  getFileCategory,
+  deleteMedia,
+  renameMedia
 } from '../services/mediaService'
 
 export function useOperationQueue() {
@@ -376,6 +378,36 @@ export function useOperationQueue() {
     })
   }
 
+  // ==========================================
+  // Media Delete & Rename Operations
+  // ==========================================
+
+  async function queueDeleteMedia(path, sha, callbacks = {}) {
+    return queueOperation({
+      type: 'deleteMedia',
+      key: `media-delete-${path}`,
+      priority: PRIORITY.NORMAL,
+      execute: async () => {
+        await deleteMedia(path, sha)
+        return { path }
+      },
+      ...callbacks
+    })
+  }
+
+  async function queueRenameMedia(oldPath, newDisplayName, sprintId, oldSha, callbacks = {}) {
+    return queueOperation({
+      type: 'renameMedia',
+      key: `media-rename-${oldPath}`,
+      priority: PRIORITY.NORMAL,
+      timeout: 120000, // 120 seconds for download/upload
+      execute: async () => {
+        return await renameMedia(oldPath, newDisplayName, sprintId, oldSha)
+      },
+      ...callbacks
+    })
+  }
+
   return {
     // Reactive state (readonly)
     isProcessing: readonly(isProcessing),
@@ -398,6 +430,8 @@ export function useOperationQueue() {
 
     // Media operations
     queueMediaUpload,
+    queueDeleteMedia,
+    queueRenameMedia,
 
     // Sprint lifecycle
     queueCloseSprint

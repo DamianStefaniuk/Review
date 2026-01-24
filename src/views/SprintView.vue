@@ -16,6 +16,7 @@ import PdfExport from '../components/PdfExport.vue'
 import JiraSyncButton from '../components/JiraSyncButton.vue'
 import CloseSprintButton from '../components/CloseSprintButton.vue'
 import DataRepoStatus from '../components/DataRepoStatus.vue'
+import MediaManager from '../components/MediaManager.vue'
 
 const authStore = useAuthStore()
 const refreshSidebar = inject('refreshSidebar', () => {})
@@ -347,6 +348,13 @@ onMounted(() => {
           >
             Następny Sprint
           </button>
+          <button
+            @click="activeTab = 'media'"
+            class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors"
+            :class="activeTab === 'media' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+          >
+            Media
+          </button>
         </div>
       </nav>
 
@@ -415,6 +423,16 @@ onMounted(() => {
               :jira-timeline-url="sprint.jiraTimelineUrl"
               :sprint-id="sprint.id"
               @update="handleNextSprintPlansUpdate"
+            />
+          </div>
+        </template>
+
+        <!-- Media tab -->
+        <template v-if="activeTab === 'media'">
+          <div class="lg:col-span-3">
+            <MediaManager
+              :sprint-id="sprint.id"
+              :is-sprint-active="sprint.status === 'active'"
             />
           </div>
         </template>
