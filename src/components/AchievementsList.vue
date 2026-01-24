@@ -3,8 +3,8 @@ import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { isRepoDataConfigured } from '../services/repoDataService'
 import { useOperationQueue } from '../composables/useOperationQueue'
-import MediaUploader from './MediaUploader.vue'
-import { generateMediaMarkdown, renderMarkdownWithMedia, processMediaUrls } from '../utils/markdownMedia'
+import MarkdownToolbar from './MarkdownToolbar.vue'
+import { renderMarkdownWithMedia, processMediaUrls } from '../utils/markdownMedia'
 
 const props = defineProps({
   content: {
@@ -26,7 +26,6 @@ const isEditing = ref(false)
 const editContent = ref('')
 const saving = ref(false)
 const saveError = ref(null)
-const showMediaUploader = ref(false)
 const textareaRef = ref(null)
 const contentRef = ref(null)
 const editPreviewRef = ref(null)
@@ -91,14 +90,12 @@ const startEditing = () => {
   editContent.value = props.content || ''
   isEditing.value = true
   saveError.value = null
-  showMediaUploader.value = false
 }
 
 const cancelEditing = () => {
   editContent.value = props.content || ''
   isEditing.value = false
   saveError.value = null
-  showMediaUploader.value = false
 }
 
 const saveChanges = async () => {
@@ -115,7 +112,6 @@ const saveChanges = async () => {
     // Emit update event to parent
     emit('update', editContent.value)
     isEditing.value = false
-    showMediaUploader.value = false
   } catch (error) {
     saveError.value = error.message || 'Nie udało się zapisać zmian'
   } finally {
@@ -123,45 +119,6 @@ const saveChanges = async () => {
   }
 }
 
-const toggleMediaUploader = () => {
-  showMediaUploader.value = !showMediaUploader.value
-}
-
-const handleMediaUpload = (result) => {
-  const markdown = generateMediaMarkdown(result)
-  insertAtCursor(markdown)
-  showMediaUploader.value = false
-}
-
-const handleMediaError = (error) => {
-  console.error('Media upload error:', error)
-}
-
-const insertAtCursor = (text) => {
-  const textarea = textareaRef.value
-  if (!textarea) {
-    editContent.value += '\n' + text
-    return
-  }
-
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-  const before = editContent.value.substring(0, start)
-  const after = editContent.value.substring(end)
-
-  const needsNewlineBefore = before.length > 0 && !before.endsWith('\n')
-  const needsNewlineAfter = after.length > 0 && !after.startsWith('\n')
-
-  const insertText = (needsNewlineBefore ? '\n' : '') + text + (needsNewlineAfter ? '\n' : '')
-
-  editContent.value = before + insertText + after
-
-  const newPosition = start + insertText.length
-  textarea.focus()
-  setTimeout(() => {
-    textarea.setSelectionRange(newPosition, newPosition)
-  }, 0)
-}
 </script>
 
 <template>
@@ -185,41 +142,25 @@ const insertAtCursor = (text) => {
     <!-- Edit mode -->
     <div v-if="isEditing" class="p-6">
       <div class="mb-4">
-        <div class="flex items-center justify-between mb-2">
-          <label class="block text-sm font-medium text-gray-700">
-            Tresc (obsluguje Markdown)
-          </label>
-          <button
-            @click="toggleMediaUploader"
-            type="button"
-            class="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            Dodaj media
-          </button>
-        </div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Tresc (obsluguje Markdown)
+        </label>
 
-        <!-- Media Uploader -->
-        <div v-if="showMediaUploader" class="mb-4">
-          <MediaUploader
+        <!-- Markdown Toolbar + Textarea -->
+        <div class="border border-gray-300 rounded-lg overflow-hidden">
+          <MarkdownToolbar
+            :textarea-ref="textareaRef"
+            v-model="editContent"
             :sprint-id="sprintId"
-            @upload="handleMediaUpload"
-            @error="handleMediaError"
           />
+          <textarea
+            ref="textareaRef"
+            v-model="editContent"
+            rows="8"
+            class="w-full px-3 py-2 font-mono text-sm border-0 focus:ring-0 outline-none"
+            placeholder="- Osiagniecie 1&#10;- Osiagniecie 2&#10;- Osiagniecie 3"
+          ></textarea>
         </div>
-
-        <textarea
-          ref="textareaRef"
-          v-model="editContent"
-          rows="8"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-mono text-sm"
-          placeholder="- Osiagniecie 1&#10;- Osiagniecie 2&#10;- Osiagniecie 3"
-        ></textarea>
-        <p class="mt-1 text-xs text-gray-500">
-          Mozesz uzywac skladni Markdown: listy (- lub 1.), pogrubienie (**tekst**), kursywa (*tekst*), itp.
-        </p>
       </div>
 
       <!-- Error message -->

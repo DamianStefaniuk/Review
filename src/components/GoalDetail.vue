@@ -2,10 +2,10 @@
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import ProgressBar from './ProgressBar.vue'
 import CommentEditor from './CommentEditor.vue'
-import MediaUploader from './MediaUploader.vue'
+import MarkdownToolbar from './MarkdownToolbar.vue'
 import { getTasksForGoal, getTasksForSideGoal } from '../services/dataLoader'
 import { pluralize, pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
-import { renderMarkdownWithMedia, processMediaUrls, generateMediaMarkdown } from '../utils/markdownMedia'
+import { renderMarkdownWithMedia, processMediaUrls } from '../utils/markdownMedia'
 
 const props = defineProps({
   goal: {
@@ -26,7 +26,6 @@ const isSideGoal = computed(() => props.goal.isSideGoal === true)
 const editingCommentId = ref(null)
 const editText = ref('')
 const isUpdating = ref(false)
-const showEditMediaUploader = ref(false)
 const editTextareaRef = ref(null)
 
 // Comment content refs for media processing
@@ -111,13 +110,11 @@ const handleAddComment = (comment) => {
 const startEditing = (comment) => {
   editingCommentId.value = comment.id
   editText.value = comment.text
-  showEditMediaUploader.value = false
 }
 
 const cancelEditing = () => {
   editingCommentId.value = null
   editText.value = ''
-  showEditMediaUploader.value = false
 }
 
 const saveEdit = async () => {
@@ -137,7 +134,6 @@ const saveEdit = async () => {
   editingCommentId.value = null
   editText.value = ''
   isUpdating.value = false
-  showEditMediaUploader.value = false
 }
 
 // Helper function to render markdown for comments with media support
@@ -210,46 +206,6 @@ const executeDelete = async () => {
   isDeleting.value = false
 }
 
-// Media upload for edit mode
-const toggleEditMediaUploader = () => {
-  showEditMediaUploader.value = !showEditMediaUploader.value
-}
-
-const handleEditMediaUpload = (result) => {
-  const markdown = generateMediaMarkdown(result)
-  insertAtEditCursor(markdown)
-  showEditMediaUploader.value = false
-}
-
-const handleEditMediaError = (error) => {
-  console.error('Media upload error:', error)
-}
-
-const insertAtEditCursor = (text) => {
-  const textarea = editTextareaRef.value
-  if (!textarea) {
-    editText.value += '\n' + text
-    return
-  }
-
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-  const before = editText.value.substring(0, start)
-  const after = editText.value.substring(end)
-
-  const needsNewlineBefore = before.length > 0 && !before.endsWith('\n')
-  const needsNewlineAfter = after.length > 0 && !after.startsWith('\n')
-
-  const insertText = (needsNewlineBefore ? '\n' : '') + text + (needsNewlineAfter ? '\n' : '')
-
-  editText.value = before + insertText + after
-
-  const newPosition = start + insertText.length
-  textarea.focus()
-  setTimeout(() => {
-    textarea.setSelectionRange(newPosition, newPosition)
-  }, 0)
-}
 </script>
 
 <template>
@@ -329,36 +285,22 @@ const insertAtEditCursor = (text) => {
         >
           <!-- Edit mode -->
           <div v-if="editingCommentId === comment.id" class="space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-gray-500">Edycja komentarza</span>
-              <button
-                @click="toggleEditMediaUploader"
-                type="button"
-                class="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Media
-              </button>
-            </div>
+            <span class="text-xs text-gray-500">Edycja komentarza</span>
 
-            <!-- Media Uploader for edit -->
-            <div v-if="showEditMediaUploader">
-              <MediaUploader
+            <!-- Markdown Toolbar -->
+            <div class="border border-gray-300 rounded-lg overflow-hidden">
+              <MarkdownToolbar
+                :textarea-ref="editTextareaRef"
+                v-model="editText"
                 :sprint-id="sprint.id"
-                @upload="handleEditMediaUpload"
-                @error="handleEditMediaError"
               />
+              <textarea
+                ref="editTextareaRef"
+                v-model="editText"
+                rows="3"
+                class="w-full px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none font-mono border-0 outline-none"
+              ></textarea>
             </div>
-
-            <textarea
-              ref="editTextareaRef"
-              v-model="editText"
-              rows="3"
-              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none font-mono"
-            ></textarea>
-            <p class="text-xs text-gray-500">Markdown: listy (- lub 1.), **pogrubienie**, *kursywa*</p>
 
             <!-- Preview -->
             <div v-if="editText" class="pt-3 border-t border-gray-200">
