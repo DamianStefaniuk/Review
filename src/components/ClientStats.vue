@@ -67,25 +67,14 @@ const getGoalKey = (clientName, goalId) => `${clientName}::${goalId}`
 // Sprawdź czy cel jest rozwinięty
 const isGoalExpanded = (clientName, goalId) => expandedGoals.value.has(getGoalKey(clientName, goalId))
 
-// Toggle celu - rozwija wszystkie cele danego klienta (główne i poboczne)
-const toggleGoal = (clientName) => {
-  const clientGoals = getClientGoals(clientName)
-  const clientSideGoals = getClientSideGoals(clientName)
-  const allGoalKeys = [
-    ...clientGoals.map(g => getGoalKey(clientName, g.id)),
-    ...clientSideGoals.map(sg => getGoalKey(clientName, sg.id))
-  ]
-
-  // Sprawdź czy jakikolwiek cel klienta jest rozwinięty
-  const anyExpanded = allGoalKeys.some(key => expandedGoals.value.has(key))
-
+// Toggle pojedynczego celu
+const toggleGoal = (clientName, goalId) => {
+  const key = getGoalKey(clientName, goalId)
   const newSet = new Set(expandedGoals.value)
-  if (anyExpanded) {
-    // Zwiń wszystkie cele tego klienta
-    allGoalKeys.forEach(key => newSet.delete(key))
+  if (newSet.has(key)) {
+    newSet.delete(key)
   } else {
-    // Rozwiń wszystkie cele tego klienta
-    allGoalKeys.forEach(key => newSet.add(key))
+    newSet.add(key)
   }
   expandedGoals.value = newSet
 }
@@ -281,7 +270,7 @@ const statusColors = {
                 <div v-for="goal in getClientGoals(client.name)" :key="goal.id">
                   <!-- Cel - klikalny element -->
                   <button
-                    @click="toggleGoal(client.name)"
+                    @click="toggleGoal(client.name, goal.id)"
                     class="w-full p-3 rounded-lg border transition-all text-left"
                     :class="getGoalGradient(goal, false)"
                   >
@@ -411,7 +400,7 @@ const statusColors = {
                 <div v-for="sideGoal in getClientSideGoals(client.name)" :key="sideGoal.id">
                   <!-- Cel poboczny - klikalny element -->
                   <button
-                    @click="toggleGoal(client.name)"
+                    @click="toggleGoal(client.name, sideGoal.id)"
                     class="w-full p-3 rounded-lg border transition-all text-left"
                     :class="getGoalGradient(sideGoal, true)"
                   >
