@@ -61,22 +61,31 @@ const toggleClient = (clientName) => {
   expandedClients.value = newSet
 }
 
+// Unikalny klucz dla celu (łączy klienta z ID, aby uniknąć konfliktów)
+const getGoalKey = (clientName, goalId) => `${clientName}::${goalId}`
+
+// Sprawdź czy cel jest rozwinięty
+const isGoalExpanded = (clientName, goalId) => expandedGoals.value.has(getGoalKey(clientName, goalId))
+
 // Toggle celu - rozwija wszystkie cele danego klienta (główne i poboczne)
 const toggleGoal = (clientName) => {
   const clientGoals = getClientGoals(clientName)
   const clientSideGoals = getClientSideGoals(clientName)
-  const allGoalIds = [...clientGoals.map(g => g.id), ...clientSideGoals.map(sg => sg.id)]
+  const allGoalKeys = [
+    ...clientGoals.map(g => getGoalKey(clientName, g.id)),
+    ...clientSideGoals.map(sg => getGoalKey(clientName, sg.id))
+  ]
 
   // Sprawdź czy jakikolwiek cel klienta jest rozwinięty
-  const anyExpanded = allGoalIds.some(id => expandedGoals.value.has(id))
+  const anyExpanded = allGoalKeys.some(key => expandedGoals.value.has(key))
 
   const newSet = new Set(expandedGoals.value)
   if (anyExpanded) {
     // Zwiń wszystkie cele tego klienta
-    allGoalIds.forEach(id => newSet.delete(id))
+    allGoalKeys.forEach(key => newSet.delete(key))
   } else {
     // Rozwiń wszystkie cele tego klienta
-    allGoalIds.forEach(id => newSet.add(id))
+    allGoalKeys.forEach(key => newSet.add(key))
   }
   expandedGoals.value = newSet
 }
@@ -197,15 +206,15 @@ const statusColors = {
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div class="text-3xl font-bold text-gray-900">{{ totalStats.goals }}</div>
-        <div class="text-sm text-gray-500 mt-1">{{ pluralize(totalStats.goals, POLISH_NOUNS.goal) }}</div>
+        <div class="text-sm text-gray-500 mt-1 capitalize">{{ pluralize(totalStats.goals, POLISH_NOUNS.goal) }}</div>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div class="text-3xl font-bold text-gray-900">{{ totalStats.sideGoals }}</div>
-        <div class="text-sm text-gray-500 mt-1">{{ pluralize(totalStats.sideGoals, POLISH_NOUNS.sideGoal) }}</div>
+        <div class="text-sm text-gray-500 mt-1 capitalize">{{ pluralize(totalStats.sideGoals, POLISH_NOUNS.sideGoal) }}</div>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div class="text-3xl font-bold text-gray-900">{{ totalStats.tasks }}</div>
-        <div class="text-sm text-gray-500 mt-1">{{ pluralize(totalStats.tasks, POLISH_NOUNS.task) }}</div>
+        <div class="text-sm text-gray-500 mt-1 capitalize">{{ pluralize(totalStats.tasks, POLISH_NOUNS.task) }}</div>
       </div>
     </div>
 
@@ -298,7 +307,7 @@ const statusColors = {
                         </div>
                         <svg
                           class="w-4 h-4 text-gray-400 transition-transform duration-200"
-                          :class="{ 'rotate-180': expandedGoals.has(goal.id) }"
+                          :class="{ 'rotate-180': isGoalExpanded(client.name, goal.id) }"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -310,7 +319,7 @@ const statusColors = {
                   </button>
 
                   <!-- Zadania pod celem - grupowane po epicach -->
-                  <div v-if="expandedGoals.has(goal.id)" class="mt-2 ml-7">
+                  <div v-if="isGoalExpanded(client.name, goal.id)" class="mt-2 ml-7">
                     <!-- Widok z grupami epiców -->
                     <template v-if="getTasksByEpic(goal, false)">
                       <div v-for="(epicTasks, epicName) in getTasksByEpic(goal, false)" :key="epicName">
@@ -428,7 +437,7 @@ const statusColors = {
                         </div>
                         <svg
                           class="w-4 h-4 text-gray-400 transition-transform duration-200"
-                          :class="{ 'rotate-180': expandedGoals.has(sideGoal.id) }"
+                          :class="{ 'rotate-180': isGoalExpanded(client.name, sideGoal.id) }"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -440,7 +449,7 @@ const statusColors = {
                   </button>
 
                   <!-- Zadania pod celem pobocznym - grupowane po epicach -->
-                  <div v-if="expandedGoals.has(sideGoal.id)" class="mt-2 ml-7">
+                  <div v-if="isGoalExpanded(client.name, sideGoal.id)" class="mt-2 ml-7">
                     <!-- Widok z grupami epiców -->
                     <template v-if="getTasksByEpic(sideGoal, true)">
                       <div v-for="(epicTasks, epicName) in getTasksByEpic(sideGoal, true)" :key="epicName">

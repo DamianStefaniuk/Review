@@ -331,21 +331,21 @@ onMounted(() => {
             class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors"
             :class="activeTab === 'tasks' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
           >
-            Wszystkie zadania
+            Wszystkie Zadania
           </button>
           <button
             @click="activeTab = 'stats'"
             class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors"
             :class="activeTab === 'stats' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
           >
-            Statystyki klientów
+            Statystyki Klientów
           </button>
           <button
             @click="activeTab = 'next'"
             class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors"
             :class="activeTab === 'next' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
           >
-            Następny sprint
+            Następny Sprint
           </button>
         </div>
       </nav>
