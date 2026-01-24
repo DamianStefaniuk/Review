@@ -348,20 +348,20 @@ onUnmounted(() => {
           </div>
 
           <!-- Name (editable) -->
-          <div class="mt-2">
-            <div v-if="editingMedia?.path === media.path" class="flex gap-1">
+          <div class="mt-2 relative">
+            <div v-if="editingMedia?.path === media.path" class="absolute left-0 right-0 top-0 z-10 bg-white rounded shadow-lg p-1 flex gap-1">
               <input
                 v-model="editName"
                 @keydown.enter="saveEdit"
                 @keydown.escape="cancelEdit"
-                class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
+                class="flex-1 min-w-0 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
                 :disabled="renameLoading"
                 autofocus
               />
               <button
                 @click="saveEdit"
                 :disabled="renameLoading"
-                class="p-1 text-green-600 hover:text-green-700 disabled:opacity-50"
+                class="p-1 text-green-600 hover:text-green-700 disabled:opacity-50 flex-shrink-0"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -370,7 +370,7 @@ onUnmounted(() => {
               <button
                 @click="cancelEdit"
                 :disabled="renameLoading"
-                class="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                class="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-50 flex-shrink-0"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

@@ -260,14 +260,38 @@ export async function listMediaForSprint(sprintId) {
       .map(f => {
         const ext = f.name.split('.').pop().toLowerCase()
         const nameWithoutExt = f.name.substring(0, f.name.lastIndexOf('.'))
-        const [timestampStr, ...nameParts] = nameWithoutExt.split('_')
+
+        // Try to extract timestamp and display name
+        // Format 1: timestamp_name (e.g., 1234567890_myfile)
+        // Format 2: timestamp-id (e.g., 1234567890-abc123)
+        // Format 3: just filename
+        let timestamp = 0
+        let displayName = nameWithoutExt
+
+        const underscoreMatch = nameWithoutExt.match(/^(\d{10,})_(.+)$/)
+        const dashMatch = nameWithoutExt.match(/^(\d{10,})-(.+)$/)
+
+        if (underscoreMatch) {
+          timestamp = parseInt(underscoreMatch[1], 10)
+          displayName = underscoreMatch[2]
+        } else if (dashMatch) {
+          timestamp = parseInt(dashMatch[1], 10)
+          displayName = dashMatch[2]
+        } else {
+          // Try to extract any leading timestamp
+          const leadingTimestamp = nameWithoutExt.match(/^(\d{10,})/)
+          if (leadingTimestamp) {
+            timestamp = parseInt(leadingTimestamp[1], 10)
+          }
+        }
+
         return {
           name: f.name,
           path: f.path,
           sha: f.sha,
           size: f.size,
-          displayName: nameParts.join('_') || f.name,
-          timestamp: parseInt(timestampStr, 10) || 0,
+          displayName,
+          timestamp,
           extension: ext,
           type: ['mp4', 'webm'].includes(ext) ? 'video' : 'image'
         }
@@ -302,10 +326,27 @@ export async function deleteMedia(path, sha) {
 export async function renameMedia(oldPath, newDisplayName, sprintId, oldSha) {
   const { uploadBinaryFile, deleteRepoFile } = await import('./repoDataService')
 
-  const ext = oldPath.split('.').pop()
-  const oldTimestamp = oldPath.split('/').pop().split('_')[0]
-  const sanitized = newDisplayName.replace(/[/\\:*?"<>|]/g, '').replace(/\s+/g, '_') || 'media'
-  const newPath = `media/sprint-${sprintId}/${oldTimestamp}_${sanitized}.${ext}`
+  // Extract extension from original file
+  const ext = oldPath.split('.').pop().toLowerCase()
+
+  // Extract timestamp from filename (format: timestamp_name.ext or timestamp-id.ext)
+  const oldFileName = oldPath.split('/').pop()
+  const oldNameWithoutExt = oldFileName.substring(0, oldFileName.lastIndexOf('.'))
+
+  // Try to extract timestamp (first numeric part before _ or -)
+  const timestampMatch = oldNameWithoutExt.match(/^(\d+)/)
+  const timestamp = timestampMatch ? timestampMatch[1] : Date.now().toString()
+
+  // Strip extension from user input if they included it
+  let cleanName = newDisplayName
+  const userExtMatch = newDisplayName.match(/\.(jpg|jpeg|png|gif|webp|mp4|webm)$/i)
+  if (userExtMatch) {
+    cleanName = newDisplayName.substring(0, newDisplayName.lastIndexOf('.'))
+  }
+
+  // Sanitize the name
+  const sanitized = cleanName.replace(/[/\\:*?"<>|]/g, '').replace(/\s+/g, '_') || 'media'
+  const newPath = `media/sprint-${sprintId}/${timestamp}_${sanitized}.${ext}`
 
   if (oldPath === newPath) return { path: oldPath, sha: oldSha }
 
