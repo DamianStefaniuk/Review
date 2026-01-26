@@ -12,7 +12,6 @@ import AchievementsList from '../components/AchievementsList.vue'
 import AllTasks from '../components/AllTasks.vue'
 import NextSprintPlans from '../components/NextSprintPlans.vue'
 import ClientStats from '../components/ClientStats.vue'
-import PdfExport from '../components/PdfExport.vue'
 import JiraSyncButton from '../components/JiraSyncButton.vue'
 import CloseSprintButton from '../components/CloseSprintButton.vue'
 import DataRepoStatus from '../components/DataRepoStatus.vue'
@@ -332,7 +331,6 @@ onMounted(() => {
             :sprint-status="sprint.status"
           />
 
-          <PdfExport :sprint="sprint" />
         </div>
       </header>
 
