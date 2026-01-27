@@ -102,6 +102,20 @@ const statusColors = {
   'To Do': 'bg-gray-100 text-gray-600'
 }
 
+// Validate jiraBaseUrl to ensure it's a safe HTTP/HTTPS URL
+const getSafeJiraUrl = (jiraBaseUrl, taskKey) => {
+  if (!jiraBaseUrl) return undefined
+  try {
+    const parsed = new URL(jiraBaseUrl)
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return undefined
+    }
+    return `${jiraBaseUrl}/browse/${taskKey}`
+  } catch {
+    return undefined
+  }
+}
+
 const handleAddComment = (comment) => {
   emit('addComment', { goalId: props.goal.id, comment, isSideGoal: isSideGoal.value })
 }
@@ -404,9 +418,9 @@ const executeDelete = async () => {
             <a
               v-for="task in tasksByStatus['To Do']"
               :key="task.key"
-              :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
-              :target="sprint.jiraBaseUrl ? '_blank' : undefined"
-              :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+              :href="getSafeJiraUrl(sprint.jiraBaseUrl, task.key)"
+              :target="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? '_blank' : undefined"
+              :rel="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? 'noopener noreferrer' : undefined"
               class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <span class="flex-shrink-0 w-5 h-5 rounded-full border-2 border-gray-300"></span>
@@ -426,9 +440,9 @@ const executeDelete = async () => {
             <a
               v-for="task in tasksByStatus['In Progress']"
               :key="task.key"
-              :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
-              :target="sprint.jiraBaseUrl ? '_blank' : undefined"
-              :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+              :href="getSafeJiraUrl(sprint.jiraBaseUrl, task.key)"
+              :target="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? '_blank' : undefined"
+              :rel="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? 'noopener noreferrer' : undefined"
               class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
             >
               <span class="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
@@ -450,9 +464,9 @@ const executeDelete = async () => {
             <a
               v-for="task in tasksByStatus['Done']"
               :key="task.key"
-              :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
-              :target="sprint.jiraBaseUrl ? '_blank' : undefined"
-              :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+              :href="getSafeJiraUrl(sprint.jiraBaseUrl, task.key)"
+              :target="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? '_blank' : undefined"
+              :rel="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? 'noopener noreferrer' : undefined"
               class="flex items-center gap-3 p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
             >
               <span class="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center">

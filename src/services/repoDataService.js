@@ -8,6 +8,7 @@
  */
 
 import { useAuthStore } from '../stores/authStore'
+import { rateLimitedFetch } from './rateLimitService'
 
 const GITHUB_API_URL = 'https://api.github.com'
 
@@ -96,7 +97,7 @@ export async function fetchRepoFile(filename) {
 
   const path = `${config.dataPath}/${filename}`
 
-  const response = await fetch(
+  const response = await rateLimitedFetch(
     `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${path}`,
     {
       headers: {
@@ -139,7 +140,7 @@ export async function fetchRootFile(filename) {
 
   const url = `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${filename}`
 
-  const response = await fetch(url, {
+  const response = await rateLimitedFetch(url, {
     headers: {
       'Authorization': `Bearer ${config.token}`,
       'Accept': 'application/vnd.github.v3+json'
@@ -192,7 +193,7 @@ export async function updateRepoFile(filename, content, sha = null) {
     body.sha = sha
   }
 
-  const response = await fetch(
+  const response = await rateLimitedFetch(
     `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${path}`,
     {
       method: 'PUT',
@@ -239,7 +240,7 @@ export async function updateRootFile(filename, content, sha = null) {
     body.sha = sha
   }
 
-  const response = await fetch(
+  const response = await rateLimitedFetch(
     `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${filename}`,
     {
       method: 'PUT',
@@ -273,7 +274,7 @@ export async function listSprintFiles() {
 
   const url = `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${config.dataPath}`
 
-  const response = await fetch(url, {
+  const response = await rateLimitedFetch(url, {
     headers: {
       'Authorization': `Bearer ${config.token}`,
       'Accept': 'application/vnd.github.v3+json'
@@ -435,7 +436,7 @@ export async function uploadBinaryFile(path, base64Content, commitMessage = null
 
   const message = commitMessage || `Upload ${path.split('/').pop()}`
 
-  const response = await fetch(
+  const response = await rateLimitedFetch(
     `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${path}`,
     {
       method: 'PUT',
@@ -470,7 +471,7 @@ export async function listDirectoryContents(path) {
   if (!config) throw new Error('Repository not configured')
 
   const url = `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${path}`
-  const response = await fetch(url, {
+  const response = await rateLimitedFetch(url, {
     headers: {
       'Authorization': `Bearer ${config.token}`,
       'Accept': 'application/vnd.github.v3+json'
@@ -496,7 +497,7 @@ export async function deleteRepoFile(path, sha, message = null) {
   const config = await getRepoConfig()
   if (!config) throw new Error('Repository not configured')
 
-  const response = await fetch(
+  const response = await rateLimitedFetch(
     `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${path}`,
     {
       method: 'DELETE',
@@ -542,7 +543,7 @@ export async function fetchBinaryFile(path) {
   // First, get file metadata from Contents API
   const metadataUrl = `${GITHUB_API_URL}/repos/${config.owner}/${config.repo}/contents/${path}`
 
-  const metadataResponse = await fetch(metadataUrl, {
+  const metadataResponse = await rateLimitedFetch(metadataUrl, {
     headers: {
       'Authorization': `Bearer ${config.token}`,
       'Accept': 'application/vnd.github.v3+json'
@@ -583,7 +584,7 @@ export async function fetchBinaryFile(path) {
     return new Blob([arrayBuffer], { type: mimeType })
   } else {
     // Fallback: use raw media type to get content directly
-    const rawResponse = await fetch(metadataUrl, {
+    const rawResponse = await rateLimitedFetch(metadataUrl, {
       headers: {
         'Authorization': `Bearer ${config.token}`,
         'Accept': 'application/vnd.github.raw'

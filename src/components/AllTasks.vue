@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { getSafeJiraUrl } from '../utils/urlUtils'
 
 const props = defineProps({
   tasks: {
@@ -181,9 +182,9 @@ const statusIcons = {
             :key="task.key"
           >
             <a
-              :href="jiraBaseUrl ? jiraBaseUrl + '/browse/' + task.key : undefined"
-              :target="jiraBaseUrl ? '_blank' : undefined"
-              :rel="jiraBaseUrl ? 'noopener noreferrer' : undefined"
+              :href="getSafeJiraUrl(jiraBaseUrl, task.key)"
+              :target="getSafeJiraUrl(jiraBaseUrl, task.key) ? '_blank' : undefined"
+              :rel="getSafeJiraUrl(jiraBaseUrl, task.key) ? 'noopener noreferrer' : undefined"
               class="px-6 py-3 flex items-center gap-4 hover:bg-gray-50 transition-colors"
             >
               <span
@@ -219,9 +220,9 @@ const statusIcons = {
         :key="task.key"
       >
         <a
-          :href="jiraBaseUrl ? jiraBaseUrl + '/browse/' + task.key : undefined"
-          :target="jiraBaseUrl ? '_blank' : undefined"
-          :rel="jiraBaseUrl ? 'noopener noreferrer' : undefined"
+          :href="getSafeJiraUrl(jiraBaseUrl, task.key)"
+          :target="getSafeJiraUrl(jiraBaseUrl, task.key) ? '_blank' : undefined"
+          :rel="getSafeJiraUrl(jiraBaseUrl, task.key) ? 'noopener noreferrer' : undefined"
           class="px-6 py-3 flex items-center gap-4 hover:bg-gray-50 transition-colors"
         >
           <span

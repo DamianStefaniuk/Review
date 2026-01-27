@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { validateFile, fileToBase64, getFileCategory } from '../services/mediaService'
+import { ref, computed, onBeforeUnmount } from 'vue'
+import { validateFile, fileToBase64, getFileCategory, uploadMedia } from '../services/mediaService'
 
 const props = defineProps({
   sprintId: {
@@ -60,9 +60,6 @@ const startUpload = async () => {
   errorMessage.value = null
 
   try {
-    // Import dynamically to avoid circular dependencies
-    const { uploadMedia } = await import('../services/mediaService')
-
     const result = await uploadMedia(
       props.sprintId,
       previewFile.value,
@@ -163,6 +160,14 @@ const formatFileSize = (bytes) => {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
+
+// Cleanup blob URLs when component unmounts to prevent memory leaks
+onBeforeUnmount(() => {
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value)
+    previewUrl.value = null
+  }
+})
 </script>
 
 <template>

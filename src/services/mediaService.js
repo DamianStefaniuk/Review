@@ -5,7 +5,15 @@
  * Media files are stored in: media/sprint-{id}/ directory
  */
 
-import { getRepoConfig, fetchBinaryFile, uploadBinaryFile } from './repoDataService'
+import {
+  getRepoConfig,
+  fetchBinaryFile,
+  uploadBinaryFile,
+  listDirectoryContents,
+  deleteRepoFile,
+  fetchRepoFile,
+  updateRepoFile
+} from './repoDataService'
 
 // File type configurations
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
@@ -278,7 +286,6 @@ export function hasCachedUrl(path) {
  * @returns {Promise<Array<{name: string, path: string, sha: string, size: number, displayName: string, timestamp: number, extension: string, type: string}>>}
  */
 export async function listMediaForSprint(sprintId) {
-  const { listDirectoryContents } = await import('./repoDataService')
   const dirPath = `media/sprint-${sprintId}`
 
   try {
@@ -338,7 +345,6 @@ export async function listMediaForSprint(sprintId) {
  * @returns {Promise<void>}
  */
 export async function deleteMedia(path, sha) {
-  const { deleteRepoFile } = await import('./repoDataService')
   revokeBlobUrl(path)
   await deleteRepoFile(path, sha)
 }
@@ -352,8 +358,6 @@ export async function deleteMedia(path, sha) {
  * @returns {Promise<{path: string, sha: string}>}
  */
 export async function renameMedia(oldPath, newDisplayName, sprintId, oldSha) {
-  const { uploadBinaryFile, deleteRepoFile } = await import('./repoDataService')
-
   // Extract extension from original file
   const ext = oldPath.split('.').pop().toLowerCase()
 
@@ -397,8 +401,6 @@ export async function renameMedia(oldPath, newDisplayName, sprintId, oldSha) {
  * @returns {Promise<{updated: boolean, count: number}>} - Whether any updates were made and count of replacements
  */
 export async function updateMediaReferencesInSprint(sprintId, oldPath, newPath) {
-  const { fetchRepoFile, updateRepoFile } = await import('./repoDataService')
-
   const filename = `sprint-${sprintId}.json`
   const result = await fetchRepoFile(filename)
 

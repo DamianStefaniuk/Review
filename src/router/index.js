@@ -27,6 +27,14 @@ const routes = [
   }
 ]
 
+// Validate hash to ensure it's a safe CSS selector (only alphanumeric, hyphens, underscores, dots)
+const isValidHashSelector = (hash) => {
+  if (!hash || typeof hash !== 'string') return false
+  // Hash should start with # and contain only safe characters for CSS selectors
+  // Dots are allowed for IDs that contain periods (e.g., section.1.2)
+  return /^#[a-zA-Z0-9._-]+$/.test(hash)
+}
+
 const router = createRouter({
   history: createWebHashHistory(),
   routes,
@@ -34,7 +42,7 @@ const router = createRouter({
     if (savedPosition) {
       return savedPosition
     }
-    if (to.hash) {
+    if (to.hash && isValidHashSelector(to.hash)) {
       return { el: to.hash, behavior: 'smooth' }
     }
     return { top: 0 }

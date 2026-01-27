@@ -9,5 +9,15 @@ export default defineConfig({
       '@': '/src'
     }
   },
-  envPrefix: 'VITE_'
+  envPrefix: 'VITE_',
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'html2pdf': ['html2pdf.js']
+        }
+      }
+    }
+  }
 })

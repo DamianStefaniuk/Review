@@ -22,6 +22,16 @@ export async function validateToken(token) {
     throw new Error('Błąd połączenia z GitHub API')
   }
 
+  // Validate required scopes
+  const scopes = response.headers.get('x-oauth-scopes') || ''
+  const scopeList = scopes.split(',').map(s => s.trim()).filter(Boolean)
+  const requiredScopes = ['repo']
+  const hasRequiredScopes = requiredScopes.every(s => scopeList.includes(s))
+
+  if (!hasRequiredScopes) {
+    throw new Error('Token wymaga uprawnień: ' + requiredScopes.join(', ') + '. Aktualne uprawnienia: ' + (scopeList.length ? scopeList.join(', ') : 'brak'))
+  }
+
   return response.json()
 }
 

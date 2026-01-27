@@ -8,15 +8,26 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
+      - name: Validate sprint_id input
+        if: ${{ inputs.sprint_id != '' }}
+        run: |
+          if ! [[ "${{ inputs.sprint_id }}" =~ ^[0-9]+$ ]]; then
+            echo "Error: sprint_id must contain only digits"
+            exit 1
+          fi
+
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         with:
           python-version: '3.11'
 
@@ -34,11 +45,13 @@ jobs:
           DATA_REPO_NAME: ${{ secrets.DATA_REPO_NAME }}
           DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
         run: |
-          if [ -n "${{ inputs.sprint_id }}" ]; then
-            python scripts/sync_jira_to_repo.py --sprint-id ${{ inputs.sprint_id }}
+          if [ -n "$SPRINT_ID" ]; then
+            python scripts/sync_jira_to_repo.py --sprint-id "$SPRINT_ID"
           else
             python scripts/sync_jira_to_repo.py
           fi
+        env:
+          SPRINT_ID: ${{ inputs.sprint_id }}
 
       - name: Sync completed
         run: echo "Jira data synced to repository successfully"

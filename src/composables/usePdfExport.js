@@ -3,6 +3,17 @@ import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { POLISH_NOUNS } from '../utils/pluralize'
 
+// Escape HTML to prevent XSS in PDF content
+const escapeHtml = (str) => {
+  if (!str) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 const renderMarkdown = (text) => {
   if (!text) return ''
   return DOMPurify.sanitize(marked(text))
@@ -132,7 +143,7 @@ export function usePdfExport() {
       const sprintStatusLabel = isSprintCompleted ? 'Zrealizowany' : (sprint.status === 'closed' ? 'Nie zrealizowany' : 'W trakcie')
 
       html += `
-        <h1>${sprint.name}</h1>
+        <h1>${escapeHtml(sprint.name)}</h1>
         <p class="meta">${formatDate(sprint.startDate)} - ${formatDate(sprint.endDate)}</p>
         <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
           <div style="display: inline-block; background: ${sprintStatusBg}; color: ${sprintStatusColor}; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
@@ -157,9 +168,9 @@ export function usePdfExport() {
 
         html += `
           <div class="goal" style="background: ${statusStyle.bg};">
-            <div class="goal-title">${index + 1}. ${goal.title}</div>
+            <div class="goal-title">${index + 1}. ${escapeHtml(goal.title)}</div>
             <div class="goal-meta">
-              ${goal.client ? `Klient: ${goal.client} · ` : ''}
+              ${goal.client ? `Klient: ${escapeHtml(goal.client)} · ` : ''}
               Postęp: ${goal.completionPercent}% ·
               <span style="color: ${statusStyle.text}; font-weight: 600;">${statusStyle.label}</span>
             </div>
@@ -198,9 +209,9 @@ export function usePdfExport() {
 
           html += `
             <div class="goal" style="background: ${statusStyle.bg};">
-              <div class="goal-title">${index + 1}. ${sideGoal.title}</div>
+              <div class="goal-title">${index + 1}. ${escapeHtml(sideGoal.title)}</div>
               <div class="goal-meta">
-                ${sideGoal.client ? `Klient: ${sideGoal.client} · ` : ''}
+                ${sideGoal.client ? `Klient: ${escapeHtml(sideGoal.client)} · ` : ''}
                 Postęp: ${sideGoal.completionPercent}% ·
                 <span style="color: ${statusStyle.text}; font-weight: 600;">${statusStyle.label}</span>
               </div>
@@ -296,9 +307,9 @@ export function usePdfExport() {
             html += `
               <div class="task" style="display: flex; align-items: center; gap: 8px;">
                 <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.color}; flex-shrink: 0;"></span>
-                <span class="task-key">${task.key}</span>
-                <span style="flex: 1;">${task.summary}</span>
-                ${task.assignee ? `<span style="color: #9ca3af; font-size: 12px;">${task.assignee}</span>` : ''}
+                <span class="task-key">${escapeHtml(task.key)}</span>
+                <span style="flex: 1;">${escapeHtml(task.summary)}</span>
+                ${task.assignee ? `<span style="color: #9ca3af; font-size: 12px;">${escapeHtml(task.assignee)}</span>` : ''}
               </div>
             `
           })

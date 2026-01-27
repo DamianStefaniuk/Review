@@ -81,7 +81,7 @@ export function renderMarkdownWithMedia(text) {
   const html = marked(text)
   return DOMPurify.sanitize(html, {
     ADD_ATTR: ['data-media-path', 'data-src'],
-    ADD_TAGS: ['video', 'source']
+    ADD_TAGS: ['video']
   })
 }
 

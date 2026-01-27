@@ -12,10 +12,13 @@ const props = defineProps({
 
 const emit = defineEmits(['submit'])
 
+const MAX_COMMENT_SIZE = 50000 // 50KB
+
 const commentText = ref('')
 const isSubmitting = ref(false)
 const textareaRef = ref(null)
 const previewRef = ref(null)
+const sizeError = ref(null)
 
 const renderedPreview = computed(() => {
   if (!commentText.value) return ''
@@ -35,11 +38,24 @@ watch(commentText, processPreviewMedia)
 const handleSubmit = async () => {
   if (!commentText.value.trim()) return
 
+  if (commentText.value.length > MAX_COMMENT_SIZE) {
+    sizeError.value = `Komentarz jest zbyt długi (${(commentText.value.length / 1000).toFixed(1)}KB / max ${MAX_COMMENT_SIZE / 1000}KB)`
+    return
+  }
+
+  sizeError.value = null
   isSubmitting.value = true
   emit('submit', { text: commentText.value.trim() })
   commentText.value = ''
   isSubmitting.value = false
 }
+
+// Clear size error when text becomes valid
+watch(commentText, (newValue) => {
+  if (newValue.length <= MAX_COMMENT_SIZE) {
+    sizeError.value = null
+  }
+})
 </script>
 
 <template>
@@ -73,10 +89,15 @@ const handleSubmit = async () => {
       </div>
     </div>
 
+    <!-- Size error -->
+    <div v-if="sizeError" class="px-3 pb-2">
+      <p class="text-sm text-red-600">{{ sizeError }}</p>
+    </div>
+
     <div class="px-3 pb-3 flex justify-end">
       <button
         @click="handleSubmit"
-        :disabled="!commentText.trim() || isSubmitting"
+        :disabled="!commentText.trim() || isSubmitting || sizeError"
         class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         <span v-if="isSubmitting" class="flex items-center gap-2">

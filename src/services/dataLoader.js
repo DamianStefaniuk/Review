@@ -8,6 +8,8 @@ import {
   loadCurrentSprintInfoFromRepo,
   loadSprintListFromRepo
 } from './repoDataService'
+import { canAccessSprint } from './sprintAccessService'
+import { useAuthStore } from '../stores/authStore'
 
 const BASE_PATH = './data'
 
@@ -36,6 +38,12 @@ export async function loadCurrentSprintInfo() {
  * Load sprint data by ID (from Repository or local file)
  */
 export async function loadSprint(sprintId) {
+  // Check sprint access before loading
+  const authStore = useAuthStore()
+  if (authStore.isAuthenticated && !canAccessSprint(sprintId, authStore.user?.login)) {
+    throw new Error(`Brak dostępu do sprintu ${sprintId}`)
+  }
+
   // Try Repository first if configured
   if (isRepoDataConfigured()) {
     try {

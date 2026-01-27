@@ -3,6 +3,7 @@
  */
 
 import { useAuthStore } from '../stores/authStore'
+import { rateLimitedFetch } from './rateLimitService'
 
 const GITHUB_API_URL = 'https://api.github.com'
 
@@ -43,7 +44,7 @@ export async function triggerJiraSyncWorkflow() {
 
   const { owner, repo, branch = 'main' } = repoInfo
 
-  const response = await fetch(
+  const response = await rateLimitedFetch(
     `${GITHUB_API_URL}/repos/${owner}/${repo}/actions/workflows/sync-jira-on-demand.yml/dispatches`,
     {
       method: 'POST',
@@ -85,7 +86,7 @@ export async function getLatestWorkflowRun() {
 
   const { owner, repo } = repoInfo
 
-  const response = await fetch(
+  const response = await rateLimitedFetch(
     `${GITHUB_API_URL}/repos/${owner}/${repo}/actions/workflows/sync-jira-on-demand.yml/runs?per_page=1`,
     {
       headers: {
@@ -119,7 +120,7 @@ export async function getWorkflowRun(runId) {
 
   const { owner, repo } = repoInfo
 
-  const response = await fetch(
+  const response = await rateLimitedFetch(
     `${GITHUB_API_URL}/repos/${owner}/${repo}/actions/runs/${runId}`,
     {
       headers: {

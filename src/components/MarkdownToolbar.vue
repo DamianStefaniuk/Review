@@ -8,7 +8,7 @@ import { validateFile, uploadMedia, getFileCategory } from '../services/mediaSer
 const props = defineProps({
   textareaRef: {
     type: Object,
-    required: true
+    default: null
   },
   modelValue: {
     type: String,
@@ -90,7 +90,17 @@ const handleLink = () => {
   if (props.disabled) return
   const url = prompt('Podaj adres URL:')
   if (url) {
-    insertLink(url)
+    // Validate URL to prevent javascript: and other dangerous protocols
+    try {
+      const parsed = new URL(url)
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        alert('Dozwolone tylko linki HTTP/HTTPS')
+        return
+      }
+      insertLink(url)
+    } catch {
+      alert('Nieprawidłowy URL')
+    }
   }
 }
 

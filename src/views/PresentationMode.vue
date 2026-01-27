@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { loadSprint, loadCurrentSprintInfo, calculateSprintStats, getTasksForGoal, getTasksForSideGoal } from '../services/dataLoader'
+import { getSafeJiraUrl } from '../utils/urlUtils'
 
 const route = useRoute()
 const router = useRouter()
@@ -845,9 +846,9 @@ const statusConfig = {
                   :key="task.key"
                 >
                   <a
-                    :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
-                    :target="sprint.jiraBaseUrl ? '_blank' : undefined"
-                    :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+                    :href="getSafeJiraUrl(sprint.jiraBaseUrl, task.key)"
+                    :target="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? '_blank' : undefined"
+                    :rel="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? 'noopener noreferrer' : undefined"
                     class="px-6 py-3 flex items-center gap-4 hover:bg-white/5 transition-colors"
                   >
                     <span

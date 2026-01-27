@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { getClientStats, getTasksForGoal, getTasksForSideGoal } from '../services/dataLoader'
 import ProgressBar from './ProgressBar.vue'
 import { pluralize, pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
+import { getSafeJiraUrl } from '../utils/urlUtils'
 
 const props = defineProps({
   sprint: {
@@ -324,9 +325,9 @@ const statusColors = {
                           <a
                             v-for="task in epicTasks"
                             :key="task.key"
-                            :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
-                            :target="sprint.jiraBaseUrl ? '_blank' : undefined"
-                            :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+                            :href="getSafeJiraUrl(sprint.jiraBaseUrl, task.key)"
+                            :target="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? '_blank' : undefined"
+                            :rel="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? 'noopener noreferrer' : undefined"
                             class="flex items-center gap-3 p-2 rounded hover:bg-white transition-colors"
                           >
                             <span
@@ -359,9 +360,9 @@ const statusColors = {
                         <a
                           v-for="task in getSortedTasksForGoal(goal, false)"
                           :key="task.key"
-                          :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
-                          :target="sprint.jiraBaseUrl ? '_blank' : undefined"
-                          :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+                          :href="getSafeJiraUrl(sprint.jiraBaseUrl, task.key)"
+                          :target="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? '_blank' : undefined"
+                          :rel="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? 'noopener noreferrer' : undefined"
                           class="flex items-center gap-3 p-2 rounded hover:bg-white transition-colors"
                         >
                           <span
@@ -454,9 +455,9 @@ const statusColors = {
                           <a
                             v-for="task in epicTasks"
                             :key="task.key"
-                            :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
-                            :target="sprint.jiraBaseUrl ? '_blank' : undefined"
-                            :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+                            :href="getSafeJiraUrl(sprint.jiraBaseUrl, task.key)"
+                            :target="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? '_blank' : undefined"
+                            :rel="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? 'noopener noreferrer' : undefined"
                             class="flex items-center gap-3 p-2 rounded hover:bg-white transition-colors"
                           >
                             <span
@@ -489,9 +490,9 @@ const statusColors = {
                         <a
                           v-for="task in getSortedTasksForGoal(sideGoal, true)"
                           :key="task.key"
-                          :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
-                          :target="sprint.jiraBaseUrl ? '_blank' : undefined"
-                          :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+                          :href="getSafeJiraUrl(sprint.jiraBaseUrl, task.key)"
+                          :target="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? '_blank' : undefined"
+                          :rel="getSafeJiraUrl(sprint.jiraBaseUrl, task.key) ? 'noopener noreferrer' : undefined"
                           class="flex items-center gap-3 p-2 rounded hover:bg-white transition-colors"
                         >
                           <span
