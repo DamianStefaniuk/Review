@@ -48,39 +48,3 @@ export function canAccessSprint(sprintId, userLogin) {
   return false
 }
 
-/**
- * Get list of sprint IDs accessible to a user
- * Note: Returns null if all sprints are accessible (default config)
- *
- * @param {string} userLogin - User's GitHub login
- * @returns {string[] | null} Array of accessible sprint IDs, or null if all are accessible
- */
-export function getAccessibleSprints(userLogin) {
-  if (!userLogin) return []
-
-  // If default rule is '*', all sprints are accessible
-  if (SPRINT_ACCESS['*'] === '*') return null
-
-  // Otherwise, filter sprints by user access
-  return Object.entries(SPRINT_ACCESS)
-    .filter(([id, access]) => {
-      if (id === '*') return false
-      if (access === '*') return true
-      if (Array.isArray(access)) return access.includes(userLogin)
-      return false
-    })
-    .map(([id]) => id)
-}
-
-/**
- * Check if sprint access is restricted (not default '*' for all)
- * @returns {boolean}
- */
-export function isAccessRestricted() {
-  // Access is restricted if there are any specific rules other than default '*'
-  const specificRules = Object.keys(SPRINT_ACCESS).filter(k => k !== '*')
-  if (specificRules.length > 0) return true
-
-  // Or if the default rule is not '*'
-  return SPRINT_ACCESS['*'] !== '*'
-}

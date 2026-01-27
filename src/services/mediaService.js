@@ -191,6 +191,27 @@ export async function fetchMediaBlob(path) {
 }
 
 /**
+ * Get the correct MIME type for a file path
+ * @param {string} path - File path
+ * @returns {string} MIME type
+ */
+function getMimeTypeForPath(path) {
+  const extension = path.split('.').pop().toLowerCase()
+  const mimeTypes = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'mp4': 'video/mp4',
+    'webm': 'video/webm',
+    'ogg': 'video/ogg',
+    'mov': 'video/quicktime'
+  }
+  return mimeTypes[extension] || 'application/octet-stream'
+}
+
+/**
  * Get blob URL for media, with caching
  * @param {string} path - Path to media file in repository
  * @returns {Promise<string>} Blob URL
@@ -201,7 +222,16 @@ export async function getMediaUrl(path) {
     return blobUrlCache.get(path)
   }
 
-  const blob = await fetchMediaBlob(path)
+  let blob = await fetchMediaBlob(path)
+
+  // Ensure blob has correct MIME type (fix for video playback issues)
+  const expectedType = getMimeTypeForPath(path)
+  if (!blob.type || blob.type === 'application/octet-stream' || blob.type !== expectedType) {
+    console.log(`[Media] Fixing blob type from "${blob.type}" to "${expectedType}" for ${path}`)
+    const arrayBuffer = await blob.arrayBuffer()
+    blob = new Blob([arrayBuffer], { type: expectedType })
+  }
+
   const blobUrl = URL.createObjectURL(blob)
 
   // Cache the URL
@@ -262,7 +292,16 @@ export async function refreshMediaUrl(path) {
   revokeBlobUrl(path)
 
   // Fetch fresh
-  const blob = await fetchMediaBlob(path)
+  let blob = await fetchMediaBlob(path)
+
+  // Ensure blob has correct MIME type
+  const expectedType = getMimeTypeForPath(path)
+  if (!blob.type || blob.type === 'application/octet-stream' || blob.type !== expectedType) {
+    console.log(`[Media] Fixing blob type from "${blob.type}" to "${expectedType}" for ${path}`)
+    const arrayBuffer = await blob.arrayBuffer()
+    blob = new Blob([arrayBuffer], { type: expectedType })
+  }
+
   const blobUrl = URL.createObjectURL(blob)
 
   // Cache the new URL

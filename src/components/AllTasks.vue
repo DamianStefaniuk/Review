@@ -1,6 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { getSafeJiraUrl } from '../utils/urlUtils'
+import { getStatusLabel } from '../utils/statusMapping'
+import { pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
 
 const props = defineProps({
   tasks: {
@@ -113,8 +115,8 @@ const statusIcons = {
     <!-- Header -->
     <div class="px-6 py-4 border-b border-gray-200">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-gray-900">
-          Wszystkie zadania ({{ tasks.length }})
+        <h3 class="text-lg font-semibold text-gray-900 capitalize">
+          {{ pluralizeWithCount(tasks.length, POLISH_NOUNS.task) }}
         </h3>
       </div>
 
@@ -136,21 +138,21 @@ const statusIcons = {
               class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
               :class="filterStatus === 'Done' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'"
             >
-              Done ({{ statusCounts['Done'] }})
+              {{ getStatusLabel('Done') }} ({{ statusCounts['Done'] }})
             </button>
             <button
               @click="filterStatus = 'In Progress'"
               class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
               :class="filterStatus === 'In Progress' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'"
             >
-              In Progress ({{ statusCounts['In Progress'] }})
+              {{ getStatusLabel('In Progress') }} ({{ statusCounts['In Progress'] }})
             </button>
             <button
               @click="filterStatus = 'To Do'"
               class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
               :class="filterStatus === 'To Do' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
             >
-              To Do ({{ statusCounts['To Do'] }})
+              {{ getStatusLabel('To Do') }} ({{ statusCounts['To Do'] }})
             </button>
           </div>
         </div>
@@ -205,7 +207,7 @@ const statusIcons = {
                 class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
                 :class="statusColors[task.status]"
               >
-                {{ task.status }}
+                {{ getStatusLabel(task.status) }}
               </span>
             </a>
           </li>
@@ -246,7 +248,7 @@ const statusIcons = {
             class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
             :class="statusColors[task.status]"
           >
-            {{ task.status }}
+            {{ getStatusLabel(task.status) }}
           </span>
         </a>
       </li>

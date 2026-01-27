@@ -4,6 +4,7 @@ import { getClientStats, getTasksForGoal, getTasksForSideGoal } from '../service
 import ProgressBar from './ProgressBar.vue'
 import { pluralize, pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
 import { getSafeJiraUrl } from '../utils/urlUtils'
+import { getStatusLabel } from '../utils/statusMapping'
 
 const props = defineProps({
   sprint: {
@@ -348,7 +349,7 @@ const statusColors = {
                               class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
                               :class="statusColors[task.status]"
                             >
-                              {{ task.status }}
+                              {{ getStatusLabel(task.status) }}
                             </span>
                           </a>
                         </div>
@@ -386,7 +387,7 @@ const statusColors = {
                             class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
                             :class="statusColors[task.status]"
                           >
-                            {{ task.status }}
+                            {{ getStatusLabel(task.status) }}
                           </span>
                         </a>
                       </div>
@@ -478,7 +479,7 @@ const statusColors = {
                               class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
                               :class="statusColors[task.status]"
                             >
-                              {{ task.status }}
+                              {{ getStatusLabel(task.status) }}
                             </span>
                           </a>
                         </div>
@@ -516,7 +517,7 @@ const statusColors = {
                             class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
                             :class="statusColors[task.status]"
                           >
-                            {{ task.status }}
+                            {{ getStatusLabel(task.status) }}
                           </span>
                         </a>
                       </div>

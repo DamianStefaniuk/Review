@@ -1,10 +1,12 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
 import { loadSprint, loadCurrentSprintInfo, calculateSprintStats, getTasksForGoal, getTasksForSideGoal } from '../services/dataLoader'
 import { getSafeJiraUrl } from '../utils/urlUtils'
+import { renderMarkdownWithMedia, processMediaUrls } from '../utils/markdownMedia'
+import { isMediaPath, getMediaUrl } from '../services/mediaService'
+import { getStatusLabel } from '../utils/statusMapping'
+import { pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
 
 const route = useRoute()
 const router = useRouter()
@@ -286,6 +288,11 @@ onMounted(async () => {
       sprintId = currentInfo.currentSprintId
     }
     sprint.value = await loadSprint(sprintId)
+
+    // Preload all media to cache before showing presentation
+    if (sprint.value) {
+      await preloadAllMedia(sprint.value)
+    }
   } catch (error) {
     console.error('Failed to load sprint:', error)
   } finally {
@@ -304,6 +311,9 @@ onMounted(async () => {
       // Fullscreen may be blocked
     }
   }
+
+  // Process media for initial slide
+  processSlideMedia()
 })
 
 onUnmounted(() => {
@@ -321,7 +331,96 @@ const formatDate = (dateStr) => {
 
 const renderMarkdown = (text) => {
   if (!text) return ''
-  return DOMPurify.sanitize(marked(text))
+  return renderMarkdownWithMedia(text)
+}
+
+// Ref for slide content container
+const slideContentRef = ref(null)
+
+// Process media after slide changes
+const processSlideMedia = async () => {
+  await nextTick()
+  // Wait for slide transition animation to complete (300ms from CSS)
+  await new Promise(resolve => setTimeout(resolve, 350))
+  if (slideContentRef.value) {
+    await processMediaUrls(slideContentRef.value)
+  }
+}
+
+// Watch for slide changes
+watch(currentSlide, processSlideMedia)
+watch(() => currentSlideData.value, processSlideMedia, { deep: true })
+
+// Preload status
+const mediaPreloadProgress = ref(0)
+const isPreloadingMedia = ref(false)
+
+// Extract all media paths from sprint data
+const extractMediaPaths = (sprintData) => {
+  const paths = new Set()
+
+  // Regex to find media paths in markdown: ![...](media/sprint-...)
+  const mediaRegex = /!\[[^\]]*\]\((media\/sprint-[^)]+)\)/g
+
+  const extractFromText = (text) => {
+    if (!text) return
+    let match
+    while ((match = mediaRegex.exec(text)) !== null) {
+      if (isMediaPath(match[1])) {
+        paths.add(match[1])
+      }
+    }
+  }
+
+  // Extract from achievements
+  extractFromText(sprintData.achievements)
+
+  // Extract from next sprint plans
+  extractFromText(sprintData.nextSprintPlans)
+
+  // Extract from goal comments
+  if (sprintData.goals) {
+    sprintData.goals.forEach(goal => {
+      if (goal.comments) {
+        goal.comments.forEach(c => extractFromText(c.text))
+      }
+    })
+  }
+
+  // Extract from side goal comments
+  if (sprintData.sideGoals) {
+    sprintData.sideGoals.forEach(goal => {
+      if (goal.comments) {
+        goal.comments.forEach(c => extractFromText(c.text))
+      }
+    })
+  }
+
+  return Array.from(paths)
+}
+
+// Preload all media to cache
+const preloadAllMedia = async (sprintData) => {
+  const paths = extractMediaPaths(sprintData)
+  if (paths.length === 0) return
+
+  isPreloadingMedia.value = true
+  mediaPreloadProgress.value = 0
+
+  let loaded = 0
+  await Promise.all(
+    paths.map(async (path) => {
+      try {
+        await getMediaUrl(path) // This caches the blob URL
+      } catch (e) {
+        console.warn(`Failed to preload media: ${path}`, e)
+      }
+      loaded++
+      mediaPreloadProgress.value = Math.round((loaded / paths.length) * 100)
+    })
+  )
+
+  isPreloadingMedia.value = false
 }
 
 // Calculate task stats for a goal
@@ -368,12 +467,22 @@ const statusConfig = {
 <template>
   <div class="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
     <!-- Loading -->
-    <div v-if="loading" class="flex items-center justify-center min-h-screen">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+    <div v-if="loading || isPreloadingMedia" class="flex flex-col items-center justify-center min-h-screen">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
+      <div v-if="isPreloadingMedia" class="text-white/70 text-center">
+        <p class="mb-2">Ładowanie mediów...</p>
+        <div class="w-48 h-2 bg-white/20 rounded-full overflow-hidden">
+          <div
+            class="h-full bg-white/70 transition-all duration-300"
+            :style="{ width: mediaPreloadProgress + '%' }"
+          ></div>
+        </div>
+        <p class="text-sm mt-1">{{ mediaPreloadProgress }}%</p>
+      </div>
     </div>
 
     <!-- No data state -->
-    <div v-else-if="!sprint" class="flex flex-col items-center justify-center min-h-screen text-center px-4">
+    <div v-else-if="!sprint && !isPreloadingMedia" class="flex flex-col items-center justify-center min-h-screen text-center px-4">
       <svg class="w-20 h-20 text-white/30 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
@@ -422,7 +531,7 @@ const statusConfig = {
       </div>
 
       <!-- Slide content -->
-      <div class="flex-1 flex items-center justify-center p-4 sm:p-8 lg:p-12">
+      <div ref="slideContentRef" class="flex-1 flex items-center justify-center p-4 sm:p-8 lg:p-12">
         <transition name="slide" mode="out-in">
           <!-- Summary slide -->
           <div v-if="currentSlideData?.type === 'summary'" :key="'summary'" class="text-center max-w-4xl">
@@ -528,15 +637,15 @@ const statusConfig = {
             <div class="flex justify-center gap-6 mb-8 text-sm">
               <div class="flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full bg-green-500"></span>
-                <span class="text-white/70">Done: {{ getGoalTaskStats(currentSlideData.data, false).done }}</span>
+                <span class="text-white/70">{{ getStatusLabel('Done') }}: {{ getGoalTaskStats(currentSlideData.data, false).done }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full bg-blue-500"></span>
-                <span class="text-white/70">In Progress: {{ getGoalTaskStats(currentSlideData.data, false).inProgress }}</span>
+                <span class="text-white/70">{{ getStatusLabel('In Progress') }}: {{ getGoalTaskStats(currentSlideData.data, false).inProgress }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full bg-gray-500"></span>
-                <span class="text-white/70">To Do: {{ getGoalTaskStats(currentSlideData.data, false).todo }}</span>
+                <span class="text-white/70">{{ getStatusLabel('To Do') }}: {{ getGoalTaskStats(currentSlideData.data, false).todo }}</span>
               </div>
             </div>
 
@@ -619,9 +728,9 @@ const statusConfig = {
                   ></div>
                 </div>
                 <div class="flex gap-4 text-xs text-white/50">
-                  <span><span class="text-green-400">{{ getGoalTaskStats(sideGoal, true).done }}</span> Done</span>
-                  <span><span class="text-blue-400">{{ getGoalTaskStats(sideGoal, true).inProgress }}</span> In Progress</span>
-                  <span><span class="text-gray-400">{{ getGoalTaskStats(sideGoal, true).todo }}</span> To Do</span>
+                  <span><span class="text-green-400">{{ getGoalTaskStats(sideGoal, true).done }}</span> {{ getStatusLabel('Done') }}</span>
+                  <span><span class="text-blue-400">{{ getGoalTaskStats(sideGoal, true).inProgress }}</span> {{ getStatusLabel('In Progress') }}</span>
+                  <span><span class="text-gray-400">{{ getGoalTaskStats(sideGoal, true).todo }}</span> {{ getStatusLabel('To Do') }}</span>
                 </div>
 
                 <!-- Comments for side goal -->
@@ -659,7 +768,7 @@ const statusConfig = {
               >
                 {{ allTasksStats.total }}
               </button>
-              <div class="text-white/50 text-base sm:text-lg lg:text-xl mt-2">zadań łącznie</div>
+              <div class="text-white/50 text-base sm:text-lg lg:text-xl mt-2 capitalize">{{ pluralizeWithCount(allTasksStats.total, POLISH_NOUNS.task) }} łącznie</div>
             </div>
 
             <!-- Task stats - clickable -->
@@ -669,21 +778,21 @@ const statusConfig = {
                 class="bg-green-500/20 hover:bg-green-500/30 rounded-2xl py-4 sm:py-8 text-center transition-all cursor-pointer group w-full sm:w-40 lg:w-48"
               >
                 <div class="text-4xl sm:text-5xl lg:text-6xl font-bold text-green-400 group-hover:scale-110 transition-transform">{{ allTasksStats.done }}</div>
-                <div class="text-white/60 text-base sm:text-lg mt-2">Done</div>
+                <div class="text-white/60 text-base sm:text-lg mt-2">{{ getStatusLabel('Done') }}</div>
               </button>
               <button
                 @click="openTasksModal('In Progress')"
                 class="bg-blue-500/20 hover:bg-blue-500/30 rounded-2xl py-4 sm:py-8 text-center transition-all cursor-pointer group w-full sm:w-40 lg:w-48"
               >
                 <div class="text-4xl sm:text-5xl lg:text-6xl font-bold text-blue-400 group-hover:scale-110 transition-transform">{{ allTasksStats.inProgress }}</div>
-                <div class="text-white/60 text-base sm:text-lg mt-2">In Progress</div>
+                <div class="text-white/60 text-base sm:text-lg mt-2">{{ getStatusLabel('In Progress') }}</div>
               </button>
               <button
                 @click="openTasksModal('To Do')"
                 class="bg-gray-500/20 hover:bg-gray-500/30 rounded-2xl py-4 sm:py-8 text-center transition-all cursor-pointer group w-full sm:w-40 lg:w-48"
               >
                 <div class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-400 group-hover:scale-110 transition-transform">{{ allTasksStats.todo }}</div>
-                <div class="text-white/60 text-base sm:text-lg mt-2">To Do</div>
+                <div class="text-white/60 text-base sm:text-lg mt-2">{{ getStatusLabel('To Do') }}</div>
               </button>
             </div>
 
@@ -805,21 +914,21 @@ const statusConfig = {
                     class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
                     :class="tasksModalFilter === 'Done' ? 'bg-green-500 text-white' : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'"
                   >
-                    Done ({{ allTasksStats.done }})
+                    {{ getStatusLabel('Done') }} ({{ allTasksStats.done }})
                   </button>
                   <button
                     @click="tasksModalFilter = 'In Progress'"
                     class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
                     :class="tasksModalFilter === 'In Progress' ? 'bg-blue-500 text-white' : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'"
                   >
-                    In Progress ({{ allTasksStats.inProgress }})
+                    {{ getStatusLabel('In Progress') }} ({{ allTasksStats.inProgress }})
                   </button>
                   <button
                     @click="tasksModalFilter = 'To Do'"
                     class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
                     :class="tasksModalFilter === 'To Do' ? 'bg-gray-500 text-white' : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'"
                   >
-                    To Do ({{ allTasksStats.todo }})
+                    {{ getStatusLabel('To Do') }} ({{ allTasksStats.todo }})
                   </button>
                 </div>
               </div>
@@ -876,7 +985,7 @@ const statusConfig = {
                         'bg-gray-500/20 text-gray-400': task.status === 'To Do'
                       }"
                     >
-                      {{ task.status }}
+                      {{ getStatusLabel(task.status) }}
                     </span>
                   </a>
                 </li>

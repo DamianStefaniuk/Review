@@ -158,7 +158,7 @@ const saveChanges = async () => {
             v-model="editContent"
             rows="8"
             class="w-full px-3 py-2 font-mono text-sm border-0 focus:ring-0 outline-none"
-            placeholder="- Osiagniecie 1&#10;- Osiagniecie 2&#10;- Osiagniecie 3"
+            placeholder="- Osiągnięcie 1&#10;- Osiągnięcie 2&#10;- Osiągnięcie 3"
           ></textarea>
         </div>
       </div>

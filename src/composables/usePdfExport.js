@@ -1,7 +1,7 @@
 import { ref } from 'vue'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
 import { POLISH_NOUNS } from '../utils/pluralize'
+import { renderMarkdownWithMedia, processMediaUrls } from '../utils/markdownMedia'
+import { getStatusLabel } from '../utils/statusMapping'
 
 // Escape HTML to prevent XSS in PDF content
 const escapeHtml = (str) => {
@@ -16,7 +16,7 @@ const escapeHtml = (str) => {
 
 const renderMarkdown = (text) => {
   if (!text) return ''
-  return DOMPurify.sanitize(marked(text))
+  return renderMarkdownWithMedia(text)
 }
 
 // Helper to get tasks for a goal
@@ -73,8 +73,22 @@ export function usePdfExport() {
       content.style.backgroundColor = '#ffffff'
       document.body.appendChild(content)
 
+      // Load all media (convert GitHub paths to blob URLs)
+      await processMediaUrls(content)
+
+      // Wait for all images to fully load
+      const images = content.querySelectorAll('img[src]')
+      await Promise.all(
+        Array.from(images).map(img =>
+          new Promise((resolve) => {
+            if (img.complete) return resolve()
+            img.onload = resolve
+            img.onerror = resolve  // Continue even on errors
+          })
+        )
+      )
+
       // Wait for fonts and DOM to be ready
-      await new Promise(resolve => setTimeout(resolve, 100))
       await document.fonts.ready
 
       const options = {
@@ -129,6 +143,11 @@ export function usePdfExport() {
         .comment { background: #f5f5f5; padding: 8px 12px; border-radius: 6px; margin-top: 8px; font-size: 13px; border-left: 3px solid #d1d5db; }
         .comment ul, .comment ol { margin: 4px 0; padding-left: 20px; }
         .comment p { margin: 4px 0; }
+        .media-container { margin: 8px 0; }
+        .media-image { max-width: 100%; height: auto; border-radius: 4px; }
+        .media-video { max-width: 100%; }
+        .media-placeholder { display: none; }
+        .media-loading .media-image, .media-loading .media-video { opacity: 0.5; }
       </style>
     `
 
@@ -180,9 +199,9 @@ export function usePdfExport() {
               <div class="progress-todo" style="width: ${(taskStats.todo / total * 100)}%"></div>
             </div>
             <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
-              <span style="color: #22c55e;">● Done: ${taskStats.done}</span> ·
-              <span style="color: #3b82f6;">● In Progress: ${taskStats.inProgress}</span> ·
-              <span style="color: #9ca3af;">● To Do: ${taskStats.todo}</span>
+              <span style="color: #22c55e;">● ${getStatusLabel('Done')}: ${taskStats.done}</span> ·
+              <span style="color: #3b82f6;">● ${getStatusLabel('In Progress')}: ${taskStats.inProgress}</span> ·
+              <span style="color: #9ca3af;">● ${getStatusLabel('To Do')}: ${taskStats.todo}</span>
             </div>
             ${goal.comments && goal.comments.length > 0 ? goal.comments.map(c => `
               <div class="comment">
@@ -221,9 +240,9 @@ export function usePdfExport() {
                 <div class="progress-todo" style="width: ${(taskStats.todo / total * 100)}%"></div>
               </div>
               <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
-                <span style="color: #22c55e;">● Done: ${taskStats.done}</span> ·
-                <span style="color: #3b82f6;">● In Progress: ${taskStats.inProgress}</span> ·
-                <span style="color: #9ca3af;">● To Do: ${taskStats.todo}</span>
+                <span style="color: #22c55e;">● ${getStatusLabel('Done')}: ${taskStats.done}</span> ·
+                <span style="color: #3b82f6;">● ${getStatusLabel('In Progress')}: ${taskStats.inProgress}</span> ·
+                <span style="color: #9ca3af;">● ${getStatusLabel('To Do')}: ${taskStats.todo}</span>
               </div>
               ${sideGoal.comments && sideGoal.comments.length > 0 ? sideGoal.comments.map(c => `
                 <div class="comment">
@@ -262,15 +281,15 @@ export function usePdfExport() {
         <div style="display: flex; gap: 16px; margin-bottom: 16px;">
           <div style="background: #dcfce7; padding: 12px 0; border-radius: 8px; text-align: center; width: 100px;">
             <div style="font-size: 24px; font-weight: bold; color: #166534;">${allTaskStats.done}</div>
-            <div style="font-size: 12px; color: #166534;">Done</div>
+            <div style="font-size: 12px; color: #166534;">${getStatusLabel('Done')}</div>
           </div>
           <div style="background: #dbeafe; padding: 12px 0; border-radius: 8px; text-align: center; width: 100px;">
             <div style="font-size: 24px; font-weight: bold; color: #1e40af;">${allTaskStats.inProgress}</div>
-            <div style="font-size: 12px; color: #1e40af;">In Progress</div>
+            <div style="font-size: 12px; color: #1e40af;">${getStatusLabel('In Progress')}</div>
           </div>
           <div style="background: #f3f4f6; padding: 12px 0; border-radius: 8px; text-align: center; width: 100px;">
             <div style="font-size: 24px; font-weight: bold; color: #4b5563;">${allTaskStats.todo}</div>
-            <div style="font-size: 12px; color: #4b5563;">To Do</div>
+            <div style="font-size: 12px; color: #4b5563;">${getStatusLabel('To Do')}</div>
           </div>
         </div>
       `
@@ -302,7 +321,7 @@ export function usePdfExport() {
         const tasks = tasksByStatus[status]
         if (tasks.length > 0) {
           const colors = statusColors[status]
-          html += `<h3 style="color: ${colors.color};">${status} (${tasks.length})</h3>`
+          html += `<h3 style="color: ${colors.color};">${getStatusLabel(status)} (${tasks.length})</h3>`
           tasks.forEach(task => {
             html += `
               <div class="task" style="display: flex; align-items: center; gap: 8px;">

@@ -234,27 +234,3 @@ export function enqueue(operation) {
   })
 }
 
-/**
- * Cancel a pending operation by ID
- */
-export function cancelOperation(id) {
-  const index = queue.items.findIndex(item => item.id === id)
-  if (index !== -1) {
-    const item = queue.items.splice(index, 1)[0]
-    item.reject(new Error('Operacja anulowana'))
-    notifyListeners()
-    return true
-  }
-  return false
-}
-
-/**
- * Clear all pending operations
- */
-export function clearQueue() {
-  queue.items.forEach(item => {
-    item.reject(new Error('Kolejka wyczyszczona'))
-  })
-  queue.items = []
-  notifyListeners()
-}

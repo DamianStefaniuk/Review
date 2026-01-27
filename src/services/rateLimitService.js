@@ -25,14 +25,6 @@ let rateLimitInfo = {
 }
 
 /**
- * Get current rate limit info
- * @returns {{ remaining: number, limit: number, reset: Date | null }}
- */
-export function getRateLimitInfo() {
-  return { ...rateLimitInfo }
-}
-
-/**
  * Update rate limit info from response headers
  * @param {Response} response - Fetch response object
  */
@@ -110,19 +102,3 @@ export async function rateLimitedFetch(url, options = {}) {
   })
 }
 
-/**
- * Check if rate limit is critically low
- * @returns {boolean}
- */
-export function isRateLimitCritical() {
-  return rateLimitInfo.remaining < 50
-}
-
-/**
- * Get time until rate limit resets
- * @returns {number | null} Milliseconds until reset, or null if unknown
- */
-export function getTimeUntilReset() {
-  if (!rateLimitInfo.reset) return null
-  return Math.max(0, rateLimitInfo.reset.getTime() - Date.now())
-}

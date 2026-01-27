@@ -17,7 +17,7 @@ const authStore = useAuthStore()
       @click="authStore.clearSelectedRepo()"
       class="text-sm text-gray-500 hover:text-gray-700"
     >
-      Zmien tablice
+      Zmień tablice
     </button>
     <button
       @click="authStore.logout()"

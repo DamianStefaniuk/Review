@@ -6,6 +6,7 @@ import MarkdownToolbar from './MarkdownToolbar.vue'
 import { getTasksForGoal, getTasksForSideGoal } from '../services/dataLoader'
 import { pluralize, pluralizeWithCount, POLISH_NOUNS } from '../utils/pluralize'
 import { renderMarkdownWithMedia, processMediaUrls } from '../utils/markdownMedia'
+import { getStatusLabel, getStatusColor } from '../utils/statusMapping'
 
 const props = defineProps({
   goal: {

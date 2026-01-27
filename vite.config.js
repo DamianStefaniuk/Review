@@ -4,11 +4,6 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [vue()],
   base: './',
-  resolve: {
-    alias: {
-      '@': '/src'
-    }
-  },
   envPrefix: 'VITE_',
   build: {
     chunkSizeWarningLimit: 1000,

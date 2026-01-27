@@ -38,19 +38,6 @@ export async function loadAvailableRepositories() {
 }
 
 /**
- * Load GitHub organization configuration from config.json
- * @returns {Promise<object>} - GitHub configuration
- */
-export async function loadGitHubConfig() {
-  const response = await fetch('./data/config.json')
-  if (!response.ok) {
-    throw new Error('Nie można załadować konfiguracji')
-  }
-  const config = await response.json()
-  return config.github
-}
-
-/**
  * Get repository configuration with user's token from authStore
  * Uses selected repository from authStore
  * Returns null if user is not authenticated or no repository is selected
@@ -359,57 +346,6 @@ export async function loadSprintListFromRepo() {
   }
 
   return sprints
-}
-
-/**
- * Save sprint data to repository
- * @param {object} sprintData
- * @returns {Promise<boolean>}
- */
-export async function saveSprintToRepo(sprintData) {
-  const filename = `sprint-${sprintData.id}.json`
-
-  // Get current SHA if exists
-  let sha = sprintData._sha
-  if (!sha) {
-    try {
-      const existing = await fetchRepoFile(filename)
-      sha = existing?.sha
-    } catch {
-      // File doesn't exist yet, that's OK
-    }
-  }
-
-  // Remove internal SHA before saving
-  const dataToSave = { ...sprintData }
-  delete dataToSave._sha
-
-  await updateRepoFile(filename, dataToSave, sha)
-  return true
-}
-
-/**
- * Update current sprint info in repository
- * @param {number} sprintId
- * @param {boolean} isActive
- * @returns {Promise<boolean>}
- */
-export async function updateCurrentSprintInfoInRepo(sprintId, isActive) {
-  // Get current SHA
-  let sha = null
-  try {
-    const existing = await fetchRootFile('current-sprint.json')
-    sha = existing?.sha
-  } catch {
-    // File doesn't exist yet
-  }
-
-  await updateRootFile('current-sprint.json', {
-    currentSprintId: sprintId,
-    isActive
-  }, sha)
-
-  return true
 }
 
 /**

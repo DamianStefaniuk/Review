@@ -73,11 +73,6 @@ export const useAuthStore = defineStore('auth', () => {
     sessionStorage.removeItem('auth')
   }
 
-  // Get session nonce for API requests
-  function getSessionNonce() {
-    return sessionNonce.value
-  }
-
   return {
     user,
     token,
@@ -88,7 +83,6 @@ export const useAuthStore = defineStore('auth', () => {
     setAuth,
     logout,
     setSelectedRepo,
-    clearSelectedRepo,
-    getSessionNonce
+    clearSelectedRepo
   }
 })

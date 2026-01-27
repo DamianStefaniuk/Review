@@ -8,19 +8,15 @@
   "repositories": [
     {
       "id": "vent",
-      "name": "Tablica Wentylacja",
-      "description": "Projekty wentylacyjne FRAPOL",
+      "name": "Tablica VENT",
+      "description": "Projekt wentylacji",
       "dataRepo": {
         "owner": "plumspzoo",
         "repo": "Review-Data-Vent",
         "dataPath": "sprints"
       },
       "jira": {
-        "boardName": "Wentylacja Board",
-        "workflowSecrets": {
-          "JIRA_PROJECT_KEY": "JIRA_PROJECT_KEY_VENT",
-          "JIRA_BOARD_ID": "JIRA_BOARD_ID_VENT"
-        }
+        "boardName": "VENT"
       }
     }
   ],

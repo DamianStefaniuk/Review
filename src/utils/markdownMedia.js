@@ -135,13 +135,24 @@ export async function processMediaUrls(container) {
 
       if (video) {
         // Remove empty source element that might interfere with loading
-        const source = video.querySelector('source')
-        if (source) {
-          source.remove()
+        const existingSource = video.querySelector('source')
+        if (existingSource) {
+          existingSource.remove()
         }
 
         // Track retry state (wasCached is checked before getMediaUrl call)
         let hasRetried = false
+
+        // Determine video MIME type from path extension
+        const videoExt = path.split('.').pop().toLowerCase()
+        const videoMimeTypes = {
+          'mp4': 'video/mp4',
+          'webm': 'video/webm',
+          'ogg': 'video/ogg',
+          'mov': 'video/quicktime',
+          'avi': 'video/x-msvideo'
+        }
+        const videoType = videoMimeTypes[videoExt] || 'video/mp4'
 
         const loadVideo = (url) => {
           video.src = url
@@ -155,7 +166,8 @@ export async function processMediaUrls(container) {
           if (placeholder) placeholder.remove()
         }
 
-        video.onerror = async () => {
+        // Handle error on video element
+        const handleVideoError = async () => {
           // If we used a cached URL and haven't retried yet, try refreshing
           if (wasCached && !hasRetried) {
             hasRetried = true
@@ -181,6 +193,8 @@ export async function processMediaUrls(container) {
             `
           }
         }
+
+        video.onerror = handleVideoError
 
         loadVideo(blobUrl)
       }
