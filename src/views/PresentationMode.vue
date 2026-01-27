@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { loadSprint, loadCurrentSprintInfo, calculateSprintStats } from '../services/dataLoader'
 
 const route = useRoute()
@@ -52,12 +54,67 @@ const slides = computed(() => {
   if (!sprint.value) return []
   const slideList = []
 
-  // Add slides based on selected elements
+  // Summary slide
   if (selectedElements.value.includes('summary')) {
     slideList.push({ type: 'summary', title: 'Podsumowanie' })
   }
 
-  // Always add end slide
+  // Goals slides - jeden slajd per cel główny
+  if (selectedElements.value.includes('goals')) {
+    sprint.value.goals.forEach((goal, index) => {
+      slideList.push({
+        type: 'goal',
+        title: `Cel ${index + 1}: ${goal.title}`,
+        data: goal,
+        index: index
+      })
+    })
+  }
+
+  // Side goals slide - jeden zbiorczy slajd
+  if (selectedElements.value.includes('sideGoals')) {
+    const sideGoals = sprint.value.sideGoals || []
+    if (sideGoals.length > 0) {
+      slideList.push({
+        type: 'sideGoals',
+        title: 'Cele poboczne',
+        data: sideGoals
+      })
+    }
+  }
+
+  // Achievements slide
+  if (selectedElements.value.includes('achievements')) {
+    if (sprint.value.achievements && sprint.value.achievements.trim()) {
+      slideList.push({
+        type: 'achievements',
+        title: 'Osiągnięcia dodatkowe',
+        data: sprint.value.achievements
+      })
+    }
+  }
+
+  // Tasks slide
+  if (selectedElements.value.includes('tasks')) {
+    slideList.push({
+      type: 'tasks',
+      title: 'Zadania',
+      data: sprint.value.tasks
+    })
+  }
+
+  // Next plans slide
+  if (selectedElements.value.includes('nextPlans')) {
+    if (sprint.value.nextSprintPlans && sprint.value.nextSprintPlans.trim()) {
+      slideList.push({
+        type: 'nextPlans',
+        title: 'Plany na następny sprint',
+        data: sprint.value.nextSprintPlans
+      })
+    }
+  }
+
+  // End slide - zawsze na końcu
   slideList.push({ type: 'end', title: 'Koniec prezentacji' })
 
   return slideList
@@ -175,6 +232,11 @@ const formatDate = (dateStr) => {
     year: 'numeric'
   })
 }
+
+const renderMarkdown = (text) => {
+  if (!text) return ''
+  return DOMPurify.sanitize(marked(text))
+}
 </script>
 
 <template>
@@ -287,6 +349,180 @@ const formatDate = (dateStr) => {
                   <span class="ml-auto text-white/50">{{ goal.completionPercent }}%</span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Goal slide - pojedynczy cel główny -->
+          <div v-else-if="currentSlideData?.type === 'goal'" :key="'goal-' + currentSlideData.index" class="max-w-4xl w-full">
+            <div class="text-center mb-8">
+              <span class="text-white/50 text-lg">Cel główny {{ currentSlideData.index + 1 }}</span>
+              <h2 class="text-4xl font-bold mt-2">{{ currentSlideData.data.title }}</h2>
+            </div>
+
+            <!-- Goal status and progress -->
+            <div class="flex items-center justify-center gap-8 mb-8">
+              <div class="text-center">
+                <span
+                  class="px-4 py-2 rounded-full text-lg font-medium"
+                  :class="currentSlideData.data.completed ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'"
+                >
+                  {{ currentSlideData.data.completed ? 'Ukończony' : 'W trakcie' }}
+                </span>
+              </div>
+              <div class="text-center">
+                <div class="text-5xl font-bold">{{ currentSlideData.data.completionPercent }}%</div>
+                <div class="text-white/50 mt-1">postęp</div>
+              </div>
+            </div>
+
+            <!-- Progress bar -->
+            <div class="w-full bg-white/10 rounded-full h-4 mb-8">
+              <div
+                class="h-full rounded-full transition-all duration-500"
+                :class="currentSlideData.data.completed ? 'bg-green-500' : 'bg-blue-500'"
+                :style="{ width: currentSlideData.data.completionPercent + '%' }"
+              ></div>
+            </div>
+
+            <!-- Client info -->
+            <div v-if="currentSlideData.data.client" class="text-center mb-8">
+              <span class="text-white/50">Klient:</span>
+              <span class="ml-2 text-lg">{{ currentSlideData.data.client }}</span>
+            </div>
+
+            <!-- Comments -->
+            <div v-if="currentSlideData.data.comments && currentSlideData.data.comments.length > 0" class="mt-8">
+              <h3 class="text-xl font-semibold mb-4 text-white/70">Komentarze:</h3>
+              <div class="space-y-4">
+                <div
+                  v-for="(comment, idx) in currentSlideData.data.comments"
+                  :key="idx"
+                  class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4"
+                >
+                  <div class="prose prose-invert prose-sm max-w-none" v-html="renderMarkdown(comment.text)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Side goals slide - zbiorczy -->
+          <div v-else-if="currentSlideData?.type === 'sideGoals'" :key="'sideGoals'" class="max-w-4xl w-full">
+            <h2 class="text-4xl font-bold text-center mb-8">Cele poboczne</h2>
+
+            <!-- Stats -->
+            <div class="flex justify-center gap-8 mb-8">
+              <div class="bg-white/10 rounded-xl px-6 py-4 text-center">
+                <div class="text-3xl font-bold">{{ currentSlideData.data.filter(g => g.completed).length }}/{{ currentSlideData.data.length }}</div>
+                <div class="text-white/50 text-sm mt-1">ukończonych</div>
+              </div>
+            </div>
+
+            <!-- Side goals list -->
+            <div class="space-y-4">
+              <div
+                v-for="(sideGoal, index) in currentSlideData.data"
+                :key="sideGoal.id"
+                class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                      :class="sideGoal.completed ? 'bg-green-500' : 'bg-amber-500'"
+                    >
+                      <svg v-if="sideGoal.completed" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                      </svg>
+                      <span v-else class="text-sm font-medium">{{ index + 1 }}</span>
+                    </span>
+                    <span class="text-lg">{{ sideGoal.title }}</span>
+                  </div>
+                  <div class="flex items-center gap-4">
+                    <span v-if="sideGoal.client" class="text-white/50 text-sm">{{ sideGoal.client }}</span>
+                    <span class="text-lg font-medium">{{ sideGoal.completionPercent }}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Achievements slide -->
+          <div v-else-if="currentSlideData?.type === 'achievements'" :key="'achievements'" class="max-w-4xl w-full">
+            <h2 class="text-4xl font-bold text-center mb-8">Osiągnięcia dodatkowe</h2>
+            <div class="bg-white/5 rounded-xl p-8">
+              <div class="prose prose-invert prose-lg max-w-none" v-html="renderMarkdown(currentSlideData.data)"></div>
+            </div>
+          </div>
+
+          <!-- Tasks slide -->
+          <div v-else-if="currentSlideData?.type === 'tasks'" :key="'tasks'" class="max-w-5xl w-full">
+            <h2 class="text-4xl font-bold text-center mb-8">Zadania</h2>
+
+            <!-- Task stats -->
+            <div class="flex justify-center gap-6 mb-8">
+              <div class="bg-green-500/20 rounded-xl px-6 py-4 text-center">
+                <div class="text-3xl font-bold text-green-400">{{ currentSlideData.data.filter(t => t.status === 'Done').length }}</div>
+                <div class="text-white/50 text-sm mt-1">Done</div>
+              </div>
+              <div class="bg-blue-500/20 rounded-xl px-6 py-4 text-center">
+                <div class="text-3xl font-bold text-blue-400">{{ currentSlideData.data.filter(t => t.status === 'In Progress').length }}</div>
+                <div class="text-white/50 text-sm mt-1">In Progress</div>
+              </div>
+              <div class="bg-gray-500/20 rounded-xl px-6 py-4 text-center">
+                <div class="text-3xl font-bold text-gray-400">{{ currentSlideData.data.filter(t => t.status === 'To Do').length }}</div>
+                <div class="text-white/50 text-sm mt-1">To Do</div>
+              </div>
+            </div>
+
+            <!-- Tasks by status -->
+            <div class="grid grid-cols-3 gap-4">
+              <div class="bg-white/5 rounded-xl p-4">
+                <h3 class="text-green-400 font-semibold mb-3">Done</h3>
+                <div class="space-y-2 max-h-64 overflow-y-auto">
+                  <div
+                    v-for="task in currentSlideData.data.filter(t => t.status === 'Done')"
+                    :key="task.key"
+                    class="text-sm bg-green-500/10 rounded p-2"
+                  >
+                    <span class="text-white/50 font-mono text-xs">{{ task.key }}</span>
+                    <div class="text-white/90">{{ task.summary }}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-white/5 rounded-xl p-4">
+                <h3 class="text-blue-400 font-semibold mb-3">In Progress</h3>
+                <div class="space-y-2 max-h-64 overflow-y-auto">
+                  <div
+                    v-for="task in currentSlideData.data.filter(t => t.status === 'In Progress')"
+                    :key="task.key"
+                    class="text-sm bg-blue-500/10 rounded p-2"
+                  >
+                    <span class="text-white/50 font-mono text-xs">{{ task.key }}</span>
+                    <div class="text-white/90">{{ task.summary }}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-white/5 rounded-xl p-4">
+                <h3 class="text-gray-400 font-semibold mb-3">To Do</h3>
+                <div class="space-y-2 max-h-64 overflow-y-auto">
+                  <div
+                    v-for="task in currentSlideData.data.filter(t => t.status === 'To Do')"
+                    :key="task.key"
+                    class="text-sm bg-gray-500/10 rounded p-2"
+                  >
+                    <span class="text-white/50 font-mono text-xs">{{ task.key }}</span>
+                    <div class="text-white/90">{{ task.summary }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Next plans slide -->
+          <div v-else-if="currentSlideData?.type === 'nextPlans'" :key="'nextPlans'" class="max-w-4xl w-full">
+            <h2 class="text-4xl font-bold text-center mb-8">Plany na następny sprint</h2>
+            <div class="bg-white/5 rounded-xl p-8">
+              <div class="prose prose-invert prose-lg max-w-none" v-html="renderMarkdown(currentSlideData.data)"></div>
             </div>
           </div>
 

@@ -879,5 +879,3 @@ Review-Data/
 MIT
 
 ---
-
-*Projekt utworzony z pomocą Claude Code*

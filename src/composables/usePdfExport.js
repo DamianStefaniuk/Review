@@ -12,6 +12,7 @@ export function usePdfExport() {
   const isExporting = ref(false)
 
   const exportToPdf = async (sprint, selectedElements = []) => {
+    console.log('Export PDF - selectedElements:', selectedElements)
     isExporting.value = true
 
     try {
