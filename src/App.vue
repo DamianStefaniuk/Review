@@ -1,5 +1,5 @@
 <script setup>
-import { ref, provide, computed, onMounted } from 'vue'
+import { ref, provide, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from './components/Sidebar.vue'
 import UserMenu from './components/UserMenu.vue'
@@ -12,8 +12,25 @@ const presentationMode = ref(false)
 const route = useRoute()
 const sidebarRef = ref(null)
 
+// Portrait mode detection
+const windowWidth = ref(window.innerWidth)
+const isPortrait = computed(() => windowWidth.value < 768)
+
+const handleResize = () => {
+  windowWidth.value = window.innerWidth
+}
+
 onMounted(() => {
   authStore.loadFromStorage()
+  window.addEventListener('resize', handleResize)
+  // Auto-collapse sidebar on portrait
+  if (isPortrait.value) {
+    sidebarCollapsed.value = true
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 
 const toggleSidebar = () => {
@@ -54,12 +71,20 @@ provide('refreshSidebar', refreshSidebar)
       @toggle="toggleSidebar"
     />
 
+    <!-- Overlay for portrait mode when sidebar is open -->
+    <div
+      v-if="isPortrait && !sidebarCollapsed && !presentationMode"
+      class="fixed inset-0 bg-black/30 z-30"
+      @click="sidebarCollapsed = true"
+    ></div>
+
     <!-- Main content -->
     <main
       class="flex-1 transition-all duration-300"
       :class="{
-        'ml-[280px]': !sidebarCollapsed && !presentationMode,
-        'ml-16': sidebarCollapsed && !presentationMode
+        'ml-[280px]': !sidebarCollapsed && !presentationMode && !isPortrait,
+        'ml-16': (sidebarCollapsed || isPortrait) && !presentationMode,
+        'ml-0': presentationMode
       }"
     >
       <!-- Header with user menu -->

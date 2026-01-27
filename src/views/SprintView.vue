@@ -335,8 +335,8 @@ onMounted(() => {
       </header>
 
       <!-- Tabs -->
-      <nav class="mb-6 border-b border-gray-200">
-        <div class="flex gap-6">
+      <nav class="mb-6 border-b border-gray-200 overflow-x-auto scrollbar-thin">
+        <div class="flex gap-3 sm:gap-6 min-w-max">
           <button
             @click="activeTab = 'overview'"
             class="pb-3 text-sm font-medium border-b-2 -mb-px transition-colors"

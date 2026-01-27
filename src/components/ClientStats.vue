@@ -296,7 +296,7 @@ const statusColors = {
                         <span class="font-medium text-gray-900 truncate">{{ goal.title }}</span>
                       </div>
                       <div class="flex items-center gap-3">
-                        <div class="w-32">
+                        <div class="w-20 sm:w-32">
                           <ProgressBar :task-stats="goal.taskStats" size="sm" />
                         </div>
                         <svg
@@ -426,7 +426,7 @@ const statusColors = {
                         <span class="font-medium text-gray-900 truncate">{{ sideGoal.title }}</span>
                       </div>
                       <div class="flex items-center gap-3">
-                        <div class="w-32">
+                        <div class="w-20 sm:w-32">
                           <ProgressBar :task-stats="sideGoal.taskStats" size="sm" />
                         </div>
                         <svg

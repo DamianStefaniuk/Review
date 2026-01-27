@@ -75,7 +75,7 @@ const formatDate = (dateStr) => {
 
 <template>
   <aside
-    class="fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-40 flex flex-col"
+    class="fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-40 flex flex-col shadow-lg"
     :class="collapsed ? 'w-16' : 'w-[280px]'"
   >
     <!-- Header -->

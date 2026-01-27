@@ -292,9 +292,10 @@ watch(() => props.textareaRef, (newRef, oldRef) => {
 
     <!-- Toolbar -->
     <div
-      class="flex items-center gap-1 px-2 py-1.5 border-b border-gray-200 bg-gray-50 rounded-t-lg"
+      class="flex items-center gap-1 px-2 py-1.5 border-b border-gray-200 bg-gray-50 rounded-t-lg overflow-x-auto scrollbar-thin"
       :class="{ 'bg-primary-50 border-primary-300': isDragging }"
     >
+      <div class="flex items-center gap-1 min-w-max">
       <!-- Bold -->
       <button
         type="button"
@@ -435,6 +436,7 @@ watch(() => props.textareaRef, (newRef, oldRef) => {
           <span class="truncate max-w-48">{{ uploadError }}</span>
         </div>
       </template>
+      </div>
     </div>
 
     <!-- Media Picker Modal -->

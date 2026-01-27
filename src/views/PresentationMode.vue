@@ -381,13 +381,13 @@ const renderMarkdown = (text) => {
       </div>
 
       <!-- Slide content -->
-      <div class="flex-1 flex items-center justify-center p-12">
+      <div class="flex-1 flex items-center justify-center p-4 sm:p-8 lg:p-12">
         <transition name="slide" mode="out-in">
           <!-- Summary slide -->
           <div v-if="currentSlideData?.type === 'summary'" :key="'summary'" class="text-center max-w-4xl">
-            <h1 class="text-6xl font-bold mb-4">{{ sprint.name }}</h1>
-            <p class="text-2xl text-white/70 mb-2">Sprint Review</p>
-            <p class="text-xl text-white/60 mb-8">
+            <h1 class="text-3xl sm:text-4xl lg:text-6xl font-bold mb-4">{{ sprint.name }}</h1>
+            <p class="text-lg sm:text-xl lg:text-2xl text-white/70 mb-2">Sprint Review</p>
+            <p class="text-base sm:text-lg lg:text-xl text-white/60 mb-8">
               {{ formatDate(sprint.startDate) }} - {{ formatDate(sprint.endDate) }}
             </p>
 
@@ -402,14 +402,14 @@ const renderMarkdown = (text) => {
             </div>
 
             <!-- Statistics -->
-            <div class="grid grid-cols-2 gap-8 max-w-2xl mx-auto mb-12">
-              <div class="bg-white/10 rounded-xl p-6">
-                <div class="text-4xl font-bold">{{ stats.completedGoals }}/{{ stats.totalGoals }}</div>
-                <div class="text-white/60 mt-2">Cele główne</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 max-w-2xl mx-auto mb-8 sm:mb-12">
+              <div class="bg-white/10 rounded-xl p-4 sm:p-6">
+                <div class="text-2xl sm:text-3xl lg:text-4xl font-bold">{{ stats.completedGoals }}/{{ stats.totalGoals }}</div>
+                <div class="text-white/60 mt-2 text-sm sm:text-base">Cele główne</div>
               </div>
-              <div class="bg-white/10 rounded-xl p-6">
-                <div class="text-4xl font-bold">{{ stats.completedMainGoalTasks }}/{{ stats.totalMainGoalTasks }}</div>
-                <div class="text-white/60 mt-2">Zadania celów głównych</div>
+              <div class="bg-white/10 rounded-xl p-4 sm:p-6">
+                <div class="text-2xl sm:text-3xl lg:text-4xl font-bold">{{ stats.completedMainGoalTasks }}/{{ stats.totalMainGoalTasks }}</div>
+                <div class="text-white/60 mt-2 text-sm sm:text-base">Zadania celów głównych</div>
               </div>
             </div>
 
@@ -439,24 +439,24 @@ const renderMarkdown = (text) => {
 
           <!-- Goal slide - pojedynczy cel główny -->
           <div v-else-if="currentSlideData?.type === 'goal'" :key="'goal-' + currentSlideData.index" class="max-w-4xl w-full">
-            <div class="text-center mb-8">
-              <span class="text-white/50 text-lg">Cel główny {{ currentSlideData.index + 1 }}</span>
-              <h2 class="text-4xl font-bold mt-2">{{ currentSlideData.data.title }}</h2>
+            <div class="text-center mb-6 sm:mb-8">
+              <span class="text-white/50 text-sm sm:text-lg">Cel główny {{ currentSlideData.index + 1 }}</span>
+              <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold mt-2">{{ currentSlideData.data.title }}</h2>
             </div>
 
             <!-- Goal status and progress -->
-            <div class="flex items-center justify-center gap-8 mb-8">
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-6 sm:mb-8">
               <div class="text-center">
                 <span
-                  class="px-4 py-2 rounded-full text-lg font-medium"
+                  class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm sm:text-lg font-medium"
                   :class="currentSlideData.data.completed ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'"
                 >
                   {{ currentSlideData.data.completed ? 'Ukończony' : 'W trakcie' }}
                 </span>
               </div>
               <div class="text-center">
-                <div class="text-5xl font-bold">{{ currentSlideData.data.completionPercent }}%</div>
-                <div class="text-white/50 mt-1">postęp</div>
+                <div class="text-3xl sm:text-4xl lg:text-5xl font-bold">{{ currentSlideData.data.completionPercent }}%</div>
+                <div class="text-white/50 mt-1 text-sm sm:text-base">postęp</div>
               </div>
             </div>
 
@@ -492,7 +492,7 @@ const renderMarkdown = (text) => {
 
           <!-- Side goals slide - zbiorczy -->
           <div v-else-if="currentSlideData?.type === 'sideGoals'" :key="'sideGoals'" class="max-w-4xl w-full max-h-[80vh] overflow-y-auto">
-            <h2 class="text-4xl font-bold text-center mb-8">Cele poboczne</h2>
+            <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-6 sm:mb-8">Cele poboczne</h2>
 
             <!-- Stats -->
             <div class="flex justify-center gap-8 mb-8">
@@ -543,7 +543,7 @@ const renderMarkdown = (text) => {
 
           <!-- Achievements slide -->
           <div v-else-if="currentSlideData?.type === 'achievements'" :key="'achievements'" class="max-w-4xl w-full">
-            <h2 class="text-4xl font-bold text-center mb-8">Osiągnięcia dodatkowe</h2>
+            <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-6 sm:mb-8">Osiągnięcia dodatkowe</h2>
             <div class="bg-white/5 rounded-xl p-8">
               <div class="prose prose-invert prose-lg max-w-none" v-html="renderMarkdown(currentSlideData.data)"></div>
             </div>
@@ -551,42 +551,42 @@ const renderMarkdown = (text) => {
 
           <!-- Tasks slide -->
           <div v-else-if="currentSlideData?.type === 'tasks'" :key="'tasks'" class="max-w-4xl w-full">
-            <h2 class="text-4xl font-bold text-center mb-4">Zadania</h2>
-            <p class="text-center text-white/50 mb-12">Wszystkie zadania sprintu (cele główne, poboczne i pozostałe)</p>
+            <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-4">Zadania</h2>
+            <p class="text-center text-white/50 text-sm sm:text-base mb-8 sm:mb-12">Wszystkie zadania sprintu (cele główne, poboczne i pozostałe)</p>
 
             <!-- Total tasks count -->
-            <div class="text-center mb-12">
+            <div class="text-center mb-8 sm:mb-12">
               <button
                 @click="openTasksModal('all')"
-                class="text-7xl font-bold hover:text-white/80 transition-colors cursor-pointer"
+                class="text-5xl sm:text-6xl lg:text-7xl font-bold hover:text-white/80 transition-colors cursor-pointer"
               >
                 {{ allTasksStats.total }}
               </button>
-              <div class="text-white/50 text-xl mt-2">zadań łącznie</div>
+              <div class="text-white/50 text-base sm:text-lg lg:text-xl mt-2">zadań łącznie</div>
             </div>
 
             <!-- Task stats - clickable -->
-            <div class="flex justify-center gap-8">
+            <div class="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8">
               <button
                 @click="openTasksModal('Done')"
-                class="bg-green-500/20 hover:bg-green-500/30 rounded-2xl px-10 py-8 text-center transition-all cursor-pointer group"
+                class="bg-green-500/20 hover:bg-green-500/30 rounded-2xl px-6 sm:px-10 py-4 sm:py-8 text-center transition-all cursor-pointer group"
               >
-                <div class="text-6xl font-bold text-green-400 group-hover:scale-110 transition-transform">{{ allTasksStats.done }}</div>
-                <div class="text-white/60 text-lg mt-2">Done</div>
+                <div class="text-4xl sm:text-5xl lg:text-6xl font-bold text-green-400 group-hover:scale-110 transition-transform">{{ allTasksStats.done }}</div>
+                <div class="text-white/60 text-base sm:text-lg mt-2">Done</div>
               </button>
               <button
                 @click="openTasksModal('In Progress')"
-                class="bg-blue-500/20 hover:bg-blue-500/30 rounded-2xl px-10 py-8 text-center transition-all cursor-pointer group"
+                class="bg-blue-500/20 hover:bg-blue-500/30 rounded-2xl px-6 sm:px-10 py-4 sm:py-8 text-center transition-all cursor-pointer group"
               >
-                <div class="text-6xl font-bold text-blue-400 group-hover:scale-110 transition-transform">{{ allTasksStats.inProgress }}</div>
-                <div class="text-white/60 text-lg mt-2">In Progress</div>
+                <div class="text-4xl sm:text-5xl lg:text-6xl font-bold text-blue-400 group-hover:scale-110 transition-transform">{{ allTasksStats.inProgress }}</div>
+                <div class="text-white/60 text-base sm:text-lg mt-2">In Progress</div>
               </button>
               <button
                 @click="openTasksModal('To Do')"
-                class="bg-gray-500/20 hover:bg-gray-500/30 rounded-2xl px-10 py-8 text-center transition-all cursor-pointer group"
+                class="bg-gray-500/20 hover:bg-gray-500/30 rounded-2xl px-6 sm:px-10 py-4 sm:py-8 text-center transition-all cursor-pointer group"
               >
-                <div class="text-6xl font-bold text-gray-400 group-hover:scale-110 transition-transform">{{ allTasksStats.todo }}</div>
-                <div class="text-white/60 text-lg mt-2">To Do</div>
+                <div class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-400 group-hover:scale-110 transition-transform">{{ allTasksStats.todo }}</div>
+                <div class="text-white/60 text-base sm:text-lg mt-2">To Do</div>
               </button>
             </div>
 
@@ -595,7 +595,7 @@ const renderMarkdown = (text) => {
 
           <!-- Next plans slide -->
           <div v-else-if="currentSlideData?.type === 'nextPlans'" :key="'nextPlans'" class="max-w-4xl w-full">
-            <h2 class="text-4xl font-bold text-center mb-8">Plany na następny sprint</h2>
+            <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-6 sm:mb-8">Plany na następny sprint</h2>
             <div class="bg-white/5 rounded-xl p-8">
               <div class="prose prose-invert prose-lg max-w-none" v-html="renderMarkdown(currentSlideData.data)"></div>
             </div>
@@ -603,8 +603,8 @@ const renderMarkdown = (text) => {
 
           <!-- End slide -->
           <div v-else-if="currentSlideData?.type === 'end'" :key="'end'" class="text-center">
-            <h2 class="text-5xl font-bold mb-8">Dziękujemy!</h2>
-            <p class="text-2xl text-white/60 mb-12">{{ sprint.name }} Review</p>
+            <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 sm:mb-8">Dziękujemy!</h2>
+            <p class="text-lg sm:text-xl lg:text-2xl text-white/60 mb-8 sm:mb-12">{{ sprint.name }} Review</p>
 
             <button
               @click="exitPresentation"
@@ -670,7 +670,7 @@ const renderMarkdown = (text) => {
           <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
 
           <!-- Modal content -->
-          <div class="relative bg-gray-900 rounded-2xl shadow-2xl border border-white/10 w-full max-w-4xl max-h-[85vh] flex flex-col">
+          <div class="relative bg-gray-900 rounded-2xl shadow-2xl border border-white/10 w-full max-w-[95vw] sm:max-w-4xl max-h-[85vh] flex flex-col">
             <!-- Header -->
             <div class="flex items-center justify-between px-6 py-4 border-b border-white/10">
               <h3 class="text-xl font-semibold text-white">

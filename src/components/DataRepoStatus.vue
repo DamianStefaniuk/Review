@@ -38,7 +38,7 @@ const activeTab = ref('user') // 'user' or 'admin'
       >
         <div class="absolute inset-0 bg-black/20"></div>
         <div
-          class="absolute top-20 right-4 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-6rem)] bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col"
+          class="absolute top-20 right-4 w-full sm:w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-6rem)] bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col"
           @click.stop
         >
           <!-- Header -->
