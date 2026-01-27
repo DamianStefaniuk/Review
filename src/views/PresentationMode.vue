@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import { loadSprint, loadCurrentSprintInfo, calculateSprintStats } from '../services/dataLoader'
+import { loadSprint, loadCurrentSprintInfo, calculateSprintStats, getTasksForGoal, getTasksForSideGoal } from '../services/dataLoader'
 
 const route = useRoute()
 const router = useRouter()
@@ -322,6 +322,46 @@ const renderMarkdown = (text) => {
   if (!text) return ''
   return DOMPurify.sanitize(marked(text))
 }
+
+// Calculate task stats for a goal
+const getGoalTaskStats = (goal, isSideGoal = false) => {
+  if (!sprint.value) return { done: 0, inProgress: 0, todo: 0, total: 0 }
+  const tasks = isSideGoal
+    ? getTasksForSideGoal(sprint.value, goal)
+    : getTasksForGoal(sprint.value, goal)
+  return {
+    done: tasks.filter(t => t.status === 'Done').length,
+    inProgress: tasks.filter(t => t.status === 'In Progress').length,
+    todo: tasks.filter(t => t.status === 'To Do').length,
+    total: tasks.length
+  }
+}
+
+// Determine goal status for coloring
+const getGoalStatus = (goal) => {
+  if (goal.completed) return 'completed'
+  if (sprint.value?.status === 'closed') return 'failed'
+  // Check if there are any in-progress tasks
+  const stats = getGoalTaskStats(goal, false)
+  if (stats.inProgress > 0 || stats.done > 0) return 'inProgress'
+  return 'todo'
+}
+
+const getSideGoalStatus = (sideGoal) => {
+  if (sideGoal.completed) return 'completed'
+  if (sprint.value?.status === 'closed') return 'failed'
+  const stats = getGoalTaskStats(sideGoal, true)
+  if (stats.inProgress > 0 || stats.done > 0) return 'inProgress'
+  return 'todo'
+}
+
+// Status colors and labels
+const statusConfig = {
+  completed: { bg: 'bg-green-500/20', text: 'text-green-400', solid: 'bg-green-500', label: 'Ukończony' },
+  inProgress: { bg: 'bg-blue-500/20', text: 'text-blue-400', solid: 'bg-blue-500', label: 'W trakcie' },
+  todo: { bg: 'bg-gray-500/20', text: 'text-gray-400', solid: 'bg-gray-500', label: 'Do zrobienia' },
+  failed: { bg: 'bg-red-500/20', text: 'text-red-400', solid: 'bg-red-500', label: 'Nie udało się' }
+}
 </script>
 
 <template>
@@ -394,10 +434,10 @@ const renderMarkdown = (text) => {
             <!-- Sprint completion status -->
             <div class="mb-8">
               <span
-                class="px-6 py-3 rounded-full text-2xl font-semibold"
-                :class="isSprintCompleted ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'"
+                class="px-6 py-3 rounded-full text-xl sm:text-2xl font-semibold"
+                :class="isSprintCompleted ? 'bg-green-500/20 text-green-400' : (sprint.status === 'closed' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400')"
               >
-                Sprint {{ isSprintCompleted ? 'zrealizowany' : 'nie zrealizowany' }}
+                Sprint {{ isSprintCompleted ? 'zrealizowany' : (sprint.status === 'closed' ? 'nie zrealizowany' : 'w trakcie') }}
               </span>
             </div>
 
@@ -420,18 +460,22 @@ const renderMarkdown = (text) => {
                 <div
                   v-for="goal in sprint.goals"
                   :key="goal.id"
-                  class="flex items-center gap-3 p-3 bg-white/5 rounded-lg"
+                  class="flex items-center gap-3 p-3 rounded-lg"
+                  :class="statusConfig[getGoalStatus(goal)].bg"
                 >
                   <span
-                    class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                    :class="goal.completed ? 'bg-green-500' : 'bg-gray-500'"
+                    class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-white"
+                    :class="statusConfig[getGoalStatus(goal)].solid"
                   >
                     <svg v-if="goal.completed" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                     </svg>
+                    <svg v-else-if="getGoalStatus(goal) === 'failed'" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
                   </span>
                   <span class="flex-1">{{ goal.title }}</span>
-                  <span class="ml-auto text-white/50">{{ goal.completionPercent }}%</span>
+                  <span class="ml-auto" :class="statusConfig[getGoalStatus(goal)].text">{{ goal.completionPercent }}%</span>
                 </div>
               </div>
             </div>
@@ -449,9 +493,9 @@ const renderMarkdown = (text) => {
               <div class="text-center">
                 <span
                   class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm sm:text-lg font-medium"
-                  :class="currentSlideData.data.completed ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'"
+                  :class="statusConfig[getGoalStatus(currentSlideData.data)].bg + ' ' + statusConfig[getGoalStatus(currentSlideData.data)].text"
                 >
-                  {{ currentSlideData.data.completed ? 'Ukończony' : 'W trakcie' }}
+                  {{ statusConfig[getGoalStatus(currentSlideData.data)].label }}
                 </span>
               </div>
               <div class="text-center">
@@ -460,13 +504,39 @@ const renderMarkdown = (text) => {
               </div>
             </div>
 
-            <!-- Progress bar -->
-            <div class="w-full bg-white/10 rounded-full h-4 mb-8">
+            <!-- Multi-segment Progress bar -->
+            <div class="w-full bg-white/10 rounded-full h-4 mb-4 overflow-hidden flex">
               <div
-                class="h-full rounded-full transition-all duration-500"
-                :class="currentSlideData.data.completed ? 'bg-green-500' : 'bg-blue-500'"
-                :style="{ width: currentSlideData.data.completionPercent + '%' }"
+                v-if="getGoalTaskStats(currentSlideData.data, false).done > 0"
+                class="h-full bg-green-500 transition-all duration-500"
+                :style="{ width: (getGoalTaskStats(currentSlideData.data, false).done / getGoalTaskStats(currentSlideData.data, false).total * 100) + '%' }"
               ></div>
+              <div
+                v-if="getGoalTaskStats(currentSlideData.data, false).inProgress > 0"
+                class="h-full bg-blue-500 transition-all duration-500"
+                :style="{ width: (getGoalTaskStats(currentSlideData.data, false).inProgress / getGoalTaskStats(currentSlideData.data, false).total * 100) + '%' }"
+              ></div>
+              <div
+                v-if="getGoalTaskStats(currentSlideData.data, false).todo > 0"
+                class="h-full bg-gray-500 transition-all duration-500"
+                :style="{ width: (getGoalTaskStats(currentSlideData.data, false).todo / getGoalTaskStats(currentSlideData.data, false).total * 100) + '%' }"
+              ></div>
+            </div>
+
+            <!-- Task stats legend -->
+            <div class="flex justify-center gap-6 mb-8 text-sm">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                <span class="text-white/70">Done: {{ getGoalTaskStats(currentSlideData.data, false).done }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                <span class="text-white/70">In Progress: {{ getGoalTaskStats(currentSlideData.data, false).inProgress }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-gray-500"></span>
+                <span class="text-white/70">To Do: {{ getGoalTaskStats(currentSlideData.data, false).todo }}</span>
+              </div>
             </div>
 
             <!-- Client info -->
@@ -482,7 +552,7 @@ const renderMarkdown = (text) => {
                 <div
                   v-for="(comment, idx) in currentSlideData.data.comments"
                   :key="idx"
-                  class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4"
+                  class="bg-white/5 border border-white/10 rounded-lg p-4"
                 >
                   <div class="prose prose-invert prose-sm max-w-none" v-html="renderMarkdown(comment.text)"></div>
                 </div>
@@ -494,45 +564,71 @@ const renderMarkdown = (text) => {
           <div v-else-if="currentSlideData?.type === 'sideGoals'" :key="'sideGoals'" class="max-w-4xl w-full max-h-[80vh] overflow-y-auto">
             <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-6 sm:mb-8">Cele poboczne</h2>
 
-            <!-- Stats -->
-            <div class="flex justify-center gap-8 mb-8">
-              <div class="bg-white/10 rounded-xl px-6 py-4 text-center">
-                <div class="text-3xl font-bold">{{ currentSlideData.data.filter(g => g.completed).length }}/{{ currentSlideData.data.length }}</div>
-                <div class="text-white/50 text-sm mt-1">ukończonych</div>
-              </div>
-            </div>
-
             <!-- Side goals list -->
             <div class="space-y-4">
               <div
                 v-for="(sideGoal, index) in currentSlideData.data"
                 :key="sideGoal.id"
-                class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4"
+                class="rounded-lg p-4"
+                :class="statusConfig[getSideGoalStatus(sideGoal)].bg"
               >
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between mb-3">
                   <div class="flex items-center gap-3">
                     <span
-                      class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                      :class="sideGoal.completed ? 'bg-green-500' : 'bg-amber-500'"
+                      class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white"
+                      :class="statusConfig[getSideGoalStatus(sideGoal)].solid"
                     >
                       <svg v-if="sideGoal.completed" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                       </svg>
+                      <svg v-else-if="getSideGoalStatus(sideGoal) === 'failed'" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                      </svg>
                       <span v-else class="text-sm font-medium">{{ index + 1 }}</span>
                     </span>
-                    <span class="text-lg">{{ sideGoal.title }}</span>
+                    <div>
+                      <span class="text-lg font-medium">{{ sideGoal.title }}</span>
+                      <span v-if="sideGoal.client" class="text-white/50 text-sm ml-2">· {{ sideGoal.client }}</span>
+                    </div>
                   </div>
-                  <div class="flex items-center gap-4">
-                    <span v-if="sideGoal.client" class="text-white/50 text-sm">{{ sideGoal.client }}</span>
-                    <span class="text-lg font-medium">{{ sideGoal.completionPercent }}%</span>
-                  </div>
+                  <span
+                    class="px-2 py-1 rounded-full text-xs font-medium"
+                    :class="statusConfig[getSideGoalStatus(sideGoal)].bg + ' ' + statusConfig[getSideGoalStatus(sideGoal)].text"
+                  >
+                    {{ statusConfig[getSideGoalStatus(sideGoal)].label }}
+                  </span>
                 </div>
+
+                <!-- Progress bar for side goal -->
+                <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden flex mb-2">
+                  <div
+                    v-if="getGoalTaskStats(sideGoal, true).done > 0"
+                    class="h-full bg-green-500"
+                    :style="{ width: (getGoalTaskStats(sideGoal, true).total > 0 ? getGoalTaskStats(sideGoal, true).done / getGoalTaskStats(sideGoal, true).total * 100 : 0) + '%' }"
+                  ></div>
+                  <div
+                    v-if="getGoalTaskStats(sideGoal, true).inProgress > 0"
+                    class="h-full bg-blue-500"
+                    :style="{ width: (getGoalTaskStats(sideGoal, true).total > 0 ? getGoalTaskStats(sideGoal, true).inProgress / getGoalTaskStats(sideGoal, true).total * 100 : 0) + '%' }"
+                  ></div>
+                  <div
+                    v-if="getGoalTaskStats(sideGoal, true).todo > 0"
+                    class="h-full bg-gray-500"
+                    :style="{ width: (getGoalTaskStats(sideGoal, true).total > 0 ? getGoalTaskStats(sideGoal, true).todo / getGoalTaskStats(sideGoal, true).total * 100 : 0) + '%' }"
+                  ></div>
+                </div>
+                <div class="flex gap-4 text-xs text-white/50">
+                  <span><span class="text-green-400">{{ getGoalTaskStats(sideGoal, true).done }}</span> Done</span>
+                  <span><span class="text-blue-400">{{ getGoalTaskStats(sideGoal, true).inProgress }}</span> In Progress</span>
+                  <span><span class="text-gray-400">{{ getGoalTaskStats(sideGoal, true).todo }}</span> To Do</span>
+                </div>
+
                 <!-- Comments for side goal -->
                 <div v-if="sideGoal.comments && sideGoal.comments.length > 0" class="mt-3 space-y-2">
                   <div
                     v-for="(comment, idx) in sideGoal.comments"
                     :key="idx"
-                    class="bg-amber-500/10 border border-amber-500/10 rounded-lg p-3 ml-11"
+                    class="bg-white/5 border border-white/10 rounded-lg p-3 ml-11"
                   >
                     <div class="prose prose-invert prose-sm max-w-none" v-html="renderMarkdown(comment.text)"></div>
                   </div>
@@ -569,21 +665,21 @@ const renderMarkdown = (text) => {
             <div class="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8">
               <button
                 @click="openTasksModal('Done')"
-                class="bg-green-500/20 hover:bg-green-500/30 rounded-2xl px-6 sm:px-10 py-4 sm:py-8 text-center transition-all cursor-pointer group"
+                class="bg-green-500/20 hover:bg-green-500/30 rounded-2xl py-4 sm:py-8 text-center transition-all cursor-pointer group w-full sm:w-40 lg:w-48"
               >
                 <div class="text-4xl sm:text-5xl lg:text-6xl font-bold text-green-400 group-hover:scale-110 transition-transform">{{ allTasksStats.done }}</div>
                 <div class="text-white/60 text-base sm:text-lg mt-2">Done</div>
               </button>
               <button
                 @click="openTasksModal('In Progress')"
-                class="bg-blue-500/20 hover:bg-blue-500/30 rounded-2xl px-6 sm:px-10 py-4 sm:py-8 text-center transition-all cursor-pointer group"
+                class="bg-blue-500/20 hover:bg-blue-500/30 rounded-2xl py-4 sm:py-8 text-center transition-all cursor-pointer group w-full sm:w-40 lg:w-48"
               >
                 <div class="text-4xl sm:text-5xl lg:text-6xl font-bold text-blue-400 group-hover:scale-110 transition-transform">{{ allTasksStats.inProgress }}</div>
                 <div class="text-white/60 text-base sm:text-lg mt-2">In Progress</div>
               </button>
               <button
                 @click="openTasksModal('To Do')"
-                class="bg-gray-500/20 hover:bg-gray-500/30 rounded-2xl px-6 sm:px-10 py-4 sm:py-8 text-center transition-all cursor-pointer group"
+                class="bg-gray-500/20 hover:bg-gray-500/30 rounded-2xl py-4 sm:py-8 text-center transition-all cursor-pointer group w-full sm:w-40 lg:w-48"
               >
                 <div class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-400 group-hover:scale-110 transition-transform">{{ allTasksStats.todo }}</div>
                 <div class="text-white/60 text-base sm:text-lg mt-2">To Do</div>

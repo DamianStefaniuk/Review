@@ -8,6 +8,43 @@ const renderMarkdown = (text) => {
   return DOMPurify.sanitize(marked(text))
 }
 
+// Helper to get tasks for a goal
+const getTasksForGoalPdf = (sprint, goal) => {
+  if (!goal.tasks || !Array.isArray(goal.tasks)) return []
+  return sprint.tasks.filter(task => goal.tasks.includes(task.key))
+}
+
+// Helper to get tasks for a side goal
+const getTasksForSideGoalPdf = (sprint, sideGoal) => {
+  if (!sideGoal.tasks || !Array.isArray(sideGoal.tasks)) return []
+  return sprint.tasks.filter(task => sideGoal.tasks.includes(task.key))
+}
+
+// Calculate task stats
+const getTaskStatsPdf = (tasks) => {
+  return {
+    done: tasks.filter(t => t.status === 'Done').length,
+    inProgress: tasks.filter(t => t.status === 'In Progress').length,
+    todo: tasks.filter(t => t.status === 'To Do').length,
+    total: tasks.length
+  }
+}
+
+// Determine goal status
+const getGoalStatusPdf = (goal, sprintStatus) => {
+  if (goal.completed) return 'completed'
+  if (sprintStatus === 'closed') return 'failed'
+  return 'inProgress'
+}
+
+// Status colors for PDF
+const pdfStatusColors = {
+  completed: { bg: '#dcfce7', border: '#86efac', text: '#166534', label: 'Ukończony' },
+  inProgress: { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af', label: 'W trakcie' },
+  todo: { bg: '#f3f4f6', border: '#d1d5db', text: '#4b5563', label: 'Do zrobienia' },
+  failed: { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b', label: 'Nie udało się' }
+}
+
 export function usePdfExport() {
   const isExporting = ref(false)
 
@@ -67,8 +104,10 @@ export function usePdfExport() {
         .goal { background: #f9fafb; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
         .goal-title { font-weight: 600; color: #111827; }
         .goal-meta { font-size: 12px; color: #6b7280; margin-top: 4px; }
-        .progress { background: #e5e7eb; height: 8px; border-radius: 4px; margin-top: 8px; }
-        .progress-bar { background: #3b82f6; height: 100%; border-radius: 4px; }
+        .progress { background: #e5e7eb; height: 8px; border-radius: 4px; margin-top: 8px; overflow: hidden; display: flex; }
+        .progress-done { background: #22c55e; height: 100%; }
+        .progress-inprogress { background: #3b82f6; height: 100%; }
+        .progress-todo { background: #9ca3af; height: 100%; }
         .task { padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
         .task:last-child { border-bottom: none; }
         .task-key { color: #9ca3af; font-family: 'Courier New', Courier, monospace; font-size: 12px; }
@@ -76,17 +115,33 @@ export function usePdfExport() {
         .status-progress { color: #2563eb; }
         .status-todo { color: #6b7280; }
         .achievement { padding: 8px 0; font-size: 14px; }
-        .comment { background: #fef3c7; padding: 8px 12px; border-radius: 6px; margin-top: 8px; font-size: 13px; }
+        .comment { background: #f5f5f5; padding: 8px 12px; border-radius: 6px; margin-top: 8px; font-size: 13px; border-left: 3px solid #d1d5db; }
         .comment ul, .comment ol { margin: 4px 0; padding-left: 20px; }
         .comment p { margin: 4px 0; }
       </style>
     `
 
-    // Summary section - header with basic info
+    // Summary section - header with basic info (no goals list)
     if (selectedElements.includes('summary')) {
+      const isSprintCompleted = sprint.goals.every(g => g.completed)
+      const completedGoals = sprint.goals.filter(g => g.completed).length
+      const totalGoals = sprint.goals.length
+      const completionPercent = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0
+      const sprintStatusColor = isSprintCompleted ? '#166534' : (sprint.status === 'closed' ? '#991b1b' : '#1e40af')
+      const sprintStatusBg = isSprintCompleted ? '#dcfce7' : (sprint.status === 'closed' ? '#fee2e2' : '#dbeafe')
+      const sprintStatusLabel = isSprintCompleted ? 'Zrealizowany' : (sprint.status === 'closed' ? 'Nie zrealizowany' : 'W trakcie')
+
       html += `
         <h1>${sprint.name}</h1>
-        <p class="meta">${formatDate(sprint.startDate)} - ${formatDate(sprint.endDate)} · Status: ${sprint.status === 'active' ? 'Aktywny' : 'Zamknięty'}</p>
+        <p class="meta">${formatDate(sprint.startDate)} - ${formatDate(sprint.endDate)}</p>
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+          <div style="display: inline-block; background: ${sprintStatusBg}; color: ${sprintStatusColor}; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
+            Sprint ${sprintStatusLabel}
+          </div>
+          <div style="font-size: 18px; font-weight: 600; color: #374151;">
+            Ukończenie: <span style="color: ${sprintStatusColor};">${completionPercent}%</span> (${completedGoals}/${totalGoals} celów)
+          </div>
+        </div>
       `
     }
 
@@ -94,16 +149,29 @@ export function usePdfExport() {
     if (selectedElements.includes('goals')) {
       html += `<h2>Cele sprintu</h2>`
       sprint.goals.forEach((goal, index) => {
+        const status = getGoalStatusPdf(goal, sprint.status)
+        const statusStyle = pdfStatusColors[status]
+        const tasks = getTasksForGoalPdf(sprint, goal)
+        const taskStats = getTaskStatsPdf(tasks)
+        const total = taskStats.total || 1
+
         html += `
-          <div class="goal">
+          <div class="goal" style="background: ${statusStyle.bg};">
             <div class="goal-title">${index + 1}. ${goal.title}</div>
             <div class="goal-meta">
               ${goal.client ? `Klient: ${goal.client} · ` : ''}
               Postęp: ${goal.completionPercent}% ·
-              ${goal.completed ? '✓ Ukończony' : 'W trakcie'}
+              <span style="color: ${statusStyle.text}; font-weight: 600;">${statusStyle.label}</span>
             </div>
             <div class="progress">
-              <div class="progress-bar" style="width: ${goal.completionPercent}%"></div>
+              <div class="progress-done" style="width: ${(taskStats.done / total * 100)}%"></div>
+              <div class="progress-inprogress" style="width: ${(taskStats.inProgress / total * 100)}%"></div>
+              <div class="progress-todo" style="width: ${(taskStats.todo / total * 100)}%"></div>
+            </div>
+            <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+              <span style="color: #22c55e;">● Done: ${taskStats.done}</span> ·
+              <span style="color: #3b82f6;">● In Progress: ${taskStats.inProgress}</span> ·
+              <span style="color: #9ca3af;">● To Do: ${taskStats.todo}</span>
             </div>
             ${goal.comments && goal.comments.length > 0 ? goal.comments.map(c => `
               <div class="comment">
@@ -120,18 +188,37 @@ export function usePdfExport() {
       const sideGoals = sprint.sideGoals || []
       if (sideGoals.length > 0) {
         html += `<h2 style="text-transform: capitalize;">${POLISH_NOUNS.sideGoal.few}</h2>`
+
         sideGoals.forEach((sideGoal, index) => {
+          const status = getGoalStatusPdf(sideGoal, sprint.status)
+          const statusStyle = pdfStatusColors[status]
+          const tasks = getTasksForSideGoalPdf(sprint, sideGoal)
+          const taskStats = getTaskStatsPdf(tasks)
+          const total = taskStats.total || 1
+
           html += `
-            <div class="goal" style="background: #fffbeb;">
+            <div class="goal" style="background: ${statusStyle.bg};">
               <div class="goal-title">${index + 1}. ${sideGoal.title}</div>
               <div class="goal-meta">
                 ${sideGoal.client ? `Klient: ${sideGoal.client} · ` : ''}
                 Postęp: ${sideGoal.completionPercent}% ·
-                ${sideGoal.completed ? '✓ Ukończony' : 'W trakcie'}
+                <span style="color: ${statusStyle.text}; font-weight: 600;">${statusStyle.label}</span>
               </div>
               <div class="progress">
-                <div class="progress-bar" style="width: ${sideGoal.completionPercent}%; background: #f59e0b;"></div>
+                <div class="progress-done" style="width: ${(taskStats.done / total * 100)}%"></div>
+                <div class="progress-inprogress" style="width: ${(taskStats.inProgress / total * 100)}%"></div>
+                <div class="progress-todo" style="width: ${(taskStats.todo / total * 100)}%"></div>
               </div>
+              <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                <span style="color: #22c55e;">● Done: ${taskStats.done}</span> ·
+                <span style="color: #3b82f6;">● In Progress: ${taskStats.inProgress}</span> ·
+                <span style="color: #9ca3af;">● To Do: ${taskStats.todo}</span>
+              </div>
+              ${sideGoal.comments && sideGoal.comments.length > 0 ? sideGoal.comments.map(c => `
+                <div class="comment">
+                  ${renderMarkdown(c.text)}
+                </div>
+              `).join('') : ''}
             </div>
           `
         })
@@ -150,26 +237,68 @@ export function usePdfExport() {
 
     // Tasks section
     if (selectedElements.includes('tasks')) {
-      html += `<h2>Wszystkie zadania</h2>`
-
-      const tasksByStatus = {
-        'To Do': sprint.tasks.filter(t => t.status === 'To Do'),
-        'In Progress': sprint.tasks.filter(t => t.status === 'In Progress'),
-        'Done': sprint.tasks.filter(t => t.status === 'Done')
+      const allTaskStats = {
+        done: sprint.tasks.filter(t => t.status === 'Done').length,
+        inProgress: sprint.tasks.filter(t => t.status === 'In Progress').length,
+        todo: sprint.tasks.filter(t => t.status === 'To Do').length,
+        total: sprint.tasks.length
       }
 
-      const statusOrder = ['To Do', 'In Progress', 'Done']
+      html += `<h2>Wszystkie zadania</h2>`
+
+      // Summary stats - equal width boxes
+      html += `
+        <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+          <div style="background: #dcfce7; padding: 12px 0; border-radius: 8px; text-align: center; width: 100px;">
+            <div style="font-size: 24px; font-weight: bold; color: #166534;">${allTaskStats.done}</div>
+            <div style="font-size: 12px; color: #166534;">Done</div>
+          </div>
+          <div style="background: #dbeafe; padding: 12px 0; border-radius: 8px; text-align: center; width: 100px;">
+            <div style="font-size: 24px; font-weight: bold; color: #1e40af;">${allTaskStats.inProgress}</div>
+            <div style="font-size: 12px; color: #1e40af;">In Progress</div>
+          </div>
+          <div style="background: #f3f4f6; padding: 12px 0; border-radius: 8px; text-align: center; width: 100px;">
+            <div style="font-size: 24px; font-weight: bold; color: #4b5563;">${allTaskStats.todo}</div>
+            <div style="font-size: 12px; color: #4b5563;">To Do</div>
+          </div>
+        </div>
+      `
+
+      // Progress bar
+      const total = allTaskStats.total || 1
+      html += `
+        <div class="progress" style="height: 12px; margin-bottom: 20px;">
+          <div class="progress-done" style="width: ${(allTaskStats.done / total * 100)}%"></div>
+          <div class="progress-inprogress" style="width: ${(allTaskStats.inProgress / total * 100)}%"></div>
+          <div class="progress-todo" style="width: ${(allTaskStats.todo / total * 100)}%"></div>
+        </div>
+      `
+
+      const tasksByStatus = {
+        'Done': sprint.tasks.filter(t => t.status === 'Done'),
+        'In Progress': sprint.tasks.filter(t => t.status === 'In Progress'),
+        'To Do': sprint.tasks.filter(t => t.status === 'To Do')
+      }
+
+      const statusColors = {
+        'Done': { color: '#166534', bg: '#dcfce7' },
+        'In Progress': { color: '#1e40af', bg: '#dbeafe' },
+        'To Do': { color: '#4b5563', bg: '#f3f4f6' }
+      }
+
+      const statusOrder = ['Done', 'In Progress', 'To Do']
       statusOrder.forEach(status => {
         const tasks = tasksByStatus[status]
         if (tasks.length > 0) {
-          const statusClass = status === 'Done' ? 'status-done' : status === 'In Progress' ? 'status-progress' : 'status-todo'
-          html += `<h3 class="${statusClass}">${status} (${tasks.length})</h3>`
+          const colors = statusColors[status]
+          html += `<h3 style="color: ${colors.color};">${status} (${tasks.length})</h3>`
           tasks.forEach(task => {
             html += `
-              <div class="task">
+              <div class="task" style="display: flex; align-items: center; gap: 8px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.color}; flex-shrink: 0;"></span>
                 <span class="task-key">${task.key}</span>
-                ${task.summary}
-                ${task.assignee ? `<span style="color: #9ca3af;"> - ${task.assignee}</span>` : ''}
+                <span style="flex: 1;">${task.summary}</span>
+                ${task.assignee ? `<span style="color: #9ca3af; font-size: 12px;">${task.assignee}</span>` : ''}
               </div>
             `
           })
