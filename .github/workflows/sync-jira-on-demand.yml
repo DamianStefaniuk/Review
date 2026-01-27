@@ -3,6 +3,15 @@ name: Sync Jira to Repository (On Demand)
 on:
   workflow_dispatch:
     inputs:
+      repository_id:
+        description: 'Repository ID (vent, hvac, it)'
+        required: true
+        type: choice
+        options:
+          - vent
+          - hvac
+          - it
+        default: 'vent'
       sprint_id:
         description: 'Sprint ID to sync (leave empty for active sprint)'
         required: false
@@ -23,6 +32,26 @@ jobs:
             exit 1
           fi
 
+      - name: Set secrets based on repository
+        run: |
+          case "${{ inputs.repository_id }}" in
+            vent)
+              echo "JIRA_PROJECT_KEY=${{ secrets.JIRA_PROJECT_KEY_VENT }}" >> $GITHUB_ENV
+              echo "JIRA_BOARD_ID=${{ secrets.JIRA_BOARD_ID_VENT }}" >> $GITHUB_ENV
+              echo "DATA_REPO_NAME=Review-Data-Vent" >> $GITHUB_ENV
+              ;;
+            hvac)
+              echo "JIRA_PROJECT_KEY=${{ secrets.JIRA_PROJECT_KEY_HVAC }}" >> $GITHUB_ENV
+              echo "JIRA_BOARD_ID=${{ secrets.JIRA_BOARD_ID_HVAC }}" >> $GITHUB_ENV
+              echo "DATA_REPO_NAME=Review-Data-HVAC" >> $GITHUB_ENV
+              ;;
+            it)
+              echo "JIRA_PROJECT_KEY=${{ secrets.JIRA_PROJECT_KEY_IT }}" >> $GITHUB_ENV
+              echo "JIRA_BOARD_ID=${{ secrets.JIRA_BOARD_ID_IT }}" >> $GITHUB_ENV
+              echo "DATA_REPO_NAME=Review-Data-IT" >> $GITHUB_ENV
+              ;;
+          esac
+
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
@@ -39,10 +68,7 @@ jobs:
           JIRA_URL: ${{ secrets.JIRA_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-          JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
-          JIRA_BOARD_ID: ${{ secrets.JIRA_BOARD_ID }}
           DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER }}
-          DATA_REPO_NAME: ${{ secrets.DATA_REPO_NAME }}
           DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
         run: |
           if [ -n "$SPRINT_ID" ]; then
@@ -54,4 +80,4 @@ jobs:
           SPRINT_ID: ${{ inputs.sprint_id }}
 
       - name: Sync completed
-        run: echo "Jira data synced to repository successfully"
+        run: echo "Jira data synced to repository ${{ env.DATA_REPO_NAME }} successfully"

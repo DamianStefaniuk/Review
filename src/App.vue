@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import Sidebar from './components/Sidebar.vue'
 import UserMenu from './components/UserMenu.vue'
 import LoginScreen from './components/LoginScreen.vue'
+import RepoSelector from './components/RepoSelector.vue'
 import { useAuthStore } from './stores/authStore'
 
 const authStore = useAuthStore()
@@ -61,7 +62,10 @@ provide('refreshSidebar', refreshSidebar)
   <!-- If not authenticated - show login screen -->
   <LoginScreen v-if="!authStore.isAuthenticated" />
 
-  <!-- If authenticated - show app -->
+  <!-- If authenticated but no repo selected - show repo selector -->
+  <RepoSelector v-else-if="!authStore.hasSelectedRepo" />
+
+  <!-- If authenticated and repo selected - show app -->
   <div v-else class="min-h-screen flex" :class="{ 'presentation-mode': presentationMode }">
     <!-- Sidebar -->
     <Sidebar

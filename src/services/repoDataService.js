@@ -24,39 +24,36 @@ function decodeBase64Content(base64String) {
   return new TextDecoder('utf-8').decode(bytes)
 }
 
-// Repository configuration - loaded from config.json
-let repoConfig = null
+/**
+ * Load available repositories from config.json
+ * @returns {Promise<Array>} - Array of repository configurations
+ */
+export async function loadAvailableRepositories() {
+  const response = await fetch('./data/config.json')
+  if (!response.ok) {
+    throw new Error('Nie można załadować konfiguracji')
+  }
+  const config = await response.json()
+  return config.repositories || []
+}
 
 /**
- * Load repository configuration from config.json
+ * Load GitHub organization configuration from config.json
+ * @returns {Promise<object>} - GitHub configuration
  */
-async function loadRepoConfig() {
-  if (repoConfig) return repoConfig
-
-  try {
-    const response = await fetch('./data/config.json')
-    if (response.ok) {
-      const config = await response.json()
-      repoConfig = config.dataRepo || {
-        owner: 'plumspzoo',
-        repo: 'Review-Data',
-        dataPath: 'sprints'
-      }
-    }
-  } catch {
-    repoConfig = {
-      owner: 'plumspzoo',
-      repo: 'Review-Data',
-      dataPath: 'sprints'
-    }
+export async function loadGitHubConfig() {
+  const response = await fetch('./data/config.json')
+  if (!response.ok) {
+    throw new Error('Nie można załadować konfiguracji')
   }
-
-  return repoConfig
+  const config = await response.json()
+  return config.github
 }
 
 /**
  * Get repository configuration with user's token from authStore
- * Returns null if user is not authenticated
+ * Uses selected repository from authStore
+ * Returns null if user is not authenticated or no repository is selected
  */
 export async function getRepoConfig() {
   const authStore = useAuthStore()
@@ -66,12 +63,16 @@ export async function getRepoConfig() {
     return null
   }
 
-  const config = await loadRepoConfig()
+  // Get selected repo from authStore
+  const selectedRepo = authStore.selectedRepo
+  if (!selectedRepo || !selectedRepo.dataRepo) {
+    return null
+  }
 
   return {
-    owner: config.owner,
-    repo: config.repo,
-    dataPath: config.dataPath,
+    owner: selectedRepo.dataRepo.owner,
+    repo: selectedRepo.dataRepo.repo,
+    dataPath: selectedRepo.dataRepo.dataPath,
     token: authStore.token
   }
 }
