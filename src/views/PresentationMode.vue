@@ -31,11 +31,11 @@ const stats = computed(() => {
   if (!sprint.value) return null
   const baseStats = calculateSprintStats(sprint.value)
 
-  // Calculate tasks count for main goals only
+  // Calculate tasks count for main goals only (goals use 'tasks' array with task keys)
   const mainGoalTaskKeys = new Set()
   sprint.value.goals.forEach(goal => {
-    if (goal.taskKeys) {
-      goal.taskKeys.forEach(key => mainGoalTaskKeys.add(key))
+    if (goal.tasks && Array.isArray(goal.tasks)) {
+      goal.tasks.forEach(key => mainGoalTaskKeys.add(key))
     }
   })
 
@@ -48,6 +48,82 @@ const stats = computed(() => {
     totalMainGoalTasks: mainGoalTasks.length
   }
 })
+
+// Tasks modal state
+const showTasksModal = ref(false)
+const tasksModalFilter = ref('all')
+const tasksModalSort = ref('status')
+
+const statusOrder = {
+  'Done': 1,
+  'In Progress': 2,
+  'To Do': 3
+}
+
+// All tasks statistics
+const allTasksStats = computed(() => {
+  if (!sprint.value) return { done: 0, inProgress: 0, todo: 0, total: 0 }
+  const tasks = sprint.value.tasks
+  return {
+    done: tasks.filter(t => t.status === 'Done').length,
+    inProgress: tasks.filter(t => t.status === 'In Progress').length,
+    todo: tasks.filter(t => t.status === 'To Do').length,
+    total: tasks.length
+  }
+})
+
+// Filtered and sorted tasks for modal
+const modalTasks = computed(() => {
+  if (!sprint.value) return []
+  let filtered = [...sprint.value.tasks]
+
+  // Filter by status
+  if (tasksModalFilter.value !== 'all') {
+    filtered = filtered.filter(t => t.status === tasksModalFilter.value)
+  }
+
+  // Sort
+  return filtered.sort((a, b) => {
+    if (tasksModalSort.value === 'status') {
+      const statusCompare = statusOrder[a.status] - statusOrder[b.status]
+      if (statusCompare !== 0) return statusCompare
+      const hasAssigneeA = !!a.assignee
+      const hasAssigneeB = !!b.assignee
+      if (hasAssigneeA && !hasAssigneeB) return -1
+      if (!hasAssigneeA && hasAssigneeB) return 1
+      if (hasAssigneeA && hasAssigneeB) return a.assignee.localeCompare(b.assignee)
+      return 0
+    }
+    if (tasksModalSort.value === 'epic') {
+      const epicA = a.epic || 'zzz'
+      const epicB = b.epic || 'zzz'
+      const epicCompare = epicA.localeCompare(epicB)
+      if (epicCompare !== 0) return epicCompare
+      return statusOrder[a.status] - statusOrder[b.status]
+    }
+    if (tasksModalSort.value === 'assignee') {
+      const hasAssigneeA = !!a.assignee
+      const hasAssigneeB = !!b.assignee
+      if (hasAssigneeA && !hasAssigneeB) return -1
+      if (!hasAssigneeA && hasAssigneeB) return 1
+      if (hasAssigneeA && hasAssigneeB) {
+        const assigneeCompare = a.assignee.localeCompare(b.assignee)
+        if (assigneeCompare !== 0) return assigneeCompare
+      }
+      return statusOrder[a.status] - statusOrder[b.status]
+    }
+    return 0
+  })
+})
+
+const openTasksModal = (filter = 'all') => {
+  tasksModalFilter.value = filter
+  showTasksModal.value = true
+}
+
+const closeTasksModal = () => {
+  showTasksModal.value = false
+}
 
 // Generate slides based on selected elements
 const slides = computed(() => {
@@ -160,6 +236,15 @@ const toggleFullscreen = async () => {
 }
 
 const handleKeydown = (e) => {
+  // Handle modal first
+  if (showTasksModal.value) {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      closeTasksModal()
+    }
+    return // Don't handle other keys when modal is open
+  }
+
   switch (e.key) {
     case 'ArrowRight':
     case 'Space':
@@ -406,7 +491,7 @@ const renderMarkdown = (text) => {
           </div>
 
           <!-- Side goals slide - zbiorczy -->
-          <div v-else-if="currentSlideData?.type === 'sideGoals'" :key="'sideGoals'" class="max-w-4xl w-full">
+          <div v-else-if="currentSlideData?.type === 'sideGoals'" :key="'sideGoals'" class="max-w-4xl w-full max-h-[80vh] overflow-y-auto">
             <h2 class="text-4xl font-bold text-center mb-8">Cele poboczne</h2>
 
             <!-- Stats -->
@@ -442,6 +527,16 @@ const renderMarkdown = (text) => {
                     <span class="text-lg font-medium">{{ sideGoal.completionPercent }}%</span>
                   </div>
                 </div>
+                <!-- Comments for side goal -->
+                <div v-if="sideGoal.comments && sideGoal.comments.length > 0" class="mt-3 space-y-2">
+                  <div
+                    v-for="(comment, idx) in sideGoal.comments"
+                    :key="idx"
+                    class="bg-amber-500/10 border border-amber-500/10 rounded-lg p-3 ml-11"
+                  >
+                    <div class="prose prose-invert prose-sm max-w-none" v-html="renderMarkdown(comment.text)"></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -455,67 +550,47 @@ const renderMarkdown = (text) => {
           </div>
 
           <!-- Tasks slide -->
-          <div v-else-if="currentSlideData?.type === 'tasks'" :key="'tasks'" class="max-w-5xl w-full">
-            <h2 class="text-4xl font-bold text-center mb-8">Zadania</h2>
+          <div v-else-if="currentSlideData?.type === 'tasks'" :key="'tasks'" class="max-w-4xl w-full">
+            <h2 class="text-4xl font-bold text-center mb-4">Zadania</h2>
+            <p class="text-center text-white/50 mb-12">Wszystkie zadania sprintu (cele główne, poboczne i pozostałe)</p>
 
-            <!-- Task stats -->
-            <div class="flex justify-center gap-6 mb-8">
-              <div class="bg-green-500/20 rounded-xl px-6 py-4 text-center">
-                <div class="text-3xl font-bold text-green-400">{{ currentSlideData.data.filter(t => t.status === 'Done').length }}</div>
-                <div class="text-white/50 text-sm mt-1">Done</div>
-              </div>
-              <div class="bg-blue-500/20 rounded-xl px-6 py-4 text-center">
-                <div class="text-3xl font-bold text-blue-400">{{ currentSlideData.data.filter(t => t.status === 'In Progress').length }}</div>
-                <div class="text-white/50 text-sm mt-1">In Progress</div>
-              </div>
-              <div class="bg-gray-500/20 rounded-xl px-6 py-4 text-center">
-                <div class="text-3xl font-bold text-gray-400">{{ currentSlideData.data.filter(t => t.status === 'To Do').length }}</div>
-                <div class="text-white/50 text-sm mt-1">To Do</div>
-              </div>
+            <!-- Total tasks count -->
+            <div class="text-center mb-12">
+              <button
+                @click="openTasksModal('all')"
+                class="text-7xl font-bold hover:text-white/80 transition-colors cursor-pointer"
+              >
+                {{ allTasksStats.total }}
+              </button>
+              <div class="text-white/50 text-xl mt-2">zadań łącznie</div>
             </div>
 
-            <!-- Tasks by status -->
-            <div class="grid grid-cols-3 gap-4">
-              <div class="bg-white/5 rounded-xl p-4">
-                <h3 class="text-green-400 font-semibold mb-3">Done</h3>
-                <div class="space-y-2 max-h-64 overflow-y-auto">
-                  <div
-                    v-for="task in currentSlideData.data.filter(t => t.status === 'Done')"
-                    :key="task.key"
-                    class="text-sm bg-green-500/10 rounded p-2"
-                  >
-                    <span class="text-white/50 font-mono text-xs">{{ task.key }}</span>
-                    <div class="text-white/90">{{ task.summary }}</div>
-                  </div>
-                </div>
-              </div>
-              <div class="bg-white/5 rounded-xl p-4">
-                <h3 class="text-blue-400 font-semibold mb-3">In Progress</h3>
-                <div class="space-y-2 max-h-64 overflow-y-auto">
-                  <div
-                    v-for="task in currentSlideData.data.filter(t => t.status === 'In Progress')"
-                    :key="task.key"
-                    class="text-sm bg-blue-500/10 rounded p-2"
-                  >
-                    <span class="text-white/50 font-mono text-xs">{{ task.key }}</span>
-                    <div class="text-white/90">{{ task.summary }}</div>
-                  </div>
-                </div>
-              </div>
-              <div class="bg-white/5 rounded-xl p-4">
-                <h3 class="text-gray-400 font-semibold mb-3">To Do</h3>
-                <div class="space-y-2 max-h-64 overflow-y-auto">
-                  <div
-                    v-for="task in currentSlideData.data.filter(t => t.status === 'To Do')"
-                    :key="task.key"
-                    class="text-sm bg-gray-500/10 rounded p-2"
-                  >
-                    <span class="text-white/50 font-mono text-xs">{{ task.key }}</span>
-                    <div class="text-white/90">{{ task.summary }}</div>
-                  </div>
-                </div>
-              </div>
+            <!-- Task stats - clickable -->
+            <div class="flex justify-center gap-8">
+              <button
+                @click="openTasksModal('Done')"
+                class="bg-green-500/20 hover:bg-green-500/30 rounded-2xl px-10 py-8 text-center transition-all cursor-pointer group"
+              >
+                <div class="text-6xl font-bold text-green-400 group-hover:scale-110 transition-transform">{{ allTasksStats.done }}</div>
+                <div class="text-white/60 text-lg mt-2">Done</div>
+              </button>
+              <button
+                @click="openTasksModal('In Progress')"
+                class="bg-blue-500/20 hover:bg-blue-500/30 rounded-2xl px-10 py-8 text-center transition-all cursor-pointer group"
+              >
+                <div class="text-6xl font-bold text-blue-400 group-hover:scale-110 transition-transform">{{ allTasksStats.inProgress }}</div>
+                <div class="text-white/60 text-lg mt-2">In Progress</div>
+              </button>
+              <button
+                @click="openTasksModal('To Do')"
+                class="bg-gray-500/20 hover:bg-gray-500/30 rounded-2xl px-10 py-8 text-center transition-all cursor-pointer group"
+              >
+                <div class="text-6xl font-bold text-gray-400 group-hover:scale-110 transition-transform">{{ allTasksStats.todo }}</div>
+                <div class="text-white/60 text-lg mt-2">To Do</div>
+              </button>
             </div>
+
+            <p class="text-center text-white/40 text-sm mt-8">Kliknij na liczbę, aby zobaczyć szczegóły zadań</p>
           </div>
 
           <!-- Next plans slide -->
@@ -582,6 +657,143 @@ const renderMarkdown = (text) => {
         </div>
       </div>
     </div>
+
+    <!-- Tasks Modal -->
+    <Teleport to="body">
+      <transition name="modal">
+        <div
+          v-if="showTasksModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+          @click.self="closeTasksModal"
+        >
+          <!-- Backdrop -->
+          <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+
+          <!-- Modal content -->
+          <div class="relative bg-gray-900 rounded-2xl shadow-2xl border border-white/10 w-full max-w-4xl max-h-[85vh] flex flex-col">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <h3 class="text-xl font-semibold text-white">
+                Zadania
+                <span v-if="tasksModalFilter !== 'all'" class="text-white/60">
+                  - {{ tasksModalFilter }}
+                </span>
+                <span class="text-white/40 font-normal ml-2">({{ modalTasks.length }})</span>
+              </h3>
+              <button
+                @click="closeTasksModal"
+                class="p-2 text-white/60 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Filters and sorting -->
+            <div class="px-6 py-3 border-b border-white/10 flex flex-wrap items-center gap-4">
+              <!-- Status filter -->
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-white/50">Filtruj:</span>
+                <div class="flex gap-1">
+                  <button
+                    @click="tasksModalFilter = 'all'"
+                    class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
+                    :class="tasksModalFilter === 'all' ? 'bg-white text-gray-900' : 'bg-white/10 text-white/70 hover:bg-white/20'"
+                  >
+                    Wszystkie
+                  </button>
+                  <button
+                    @click="tasksModalFilter = 'Done'"
+                    class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
+                    :class="tasksModalFilter === 'Done' ? 'bg-green-500 text-white' : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'"
+                  >
+                    Done ({{ allTasksStats.done }})
+                  </button>
+                  <button
+                    @click="tasksModalFilter = 'In Progress'"
+                    class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
+                    :class="tasksModalFilter === 'In Progress' ? 'bg-blue-500 text-white' : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'"
+                  >
+                    In Progress ({{ allTasksStats.inProgress }})
+                  </button>
+                  <button
+                    @click="tasksModalFilter = 'To Do'"
+                    class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
+                    :class="tasksModalFilter === 'To Do' ? 'bg-gray-500 text-white' : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'"
+                  >
+                    To Do ({{ allTasksStats.todo }})
+                  </button>
+                </div>
+              </div>
+
+              <!-- Sort -->
+              <div class="flex items-center gap-2 ml-auto">
+                <span class="text-sm text-white/50">Sortuj:</span>
+                <select
+                  v-model="tasksModalSort"
+                  class="px-3 py-1.5 text-sm bg-white/10 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-white/30 focus:border-white/30 outline-none"
+                >
+                  <option value="status">Status</option>
+                  <option value="epic">Epic</option>
+                  <option value="assignee">Osoba</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Task list -->
+            <div class="flex-1 overflow-y-auto">
+              <ul class="divide-y divide-white/5">
+                <li
+                  v-for="task in modalTasks"
+                  :key="task.key"
+                >
+                  <a
+                    :href="sprint.jiraBaseUrl ? sprint.jiraBaseUrl + '/browse/' + task.key : undefined"
+                    :target="sprint.jiraBaseUrl ? '_blank' : undefined"
+                    :rel="sprint.jiraBaseUrl ? 'noopener noreferrer' : undefined"
+                    class="px-6 py-3 flex items-center gap-4 hover:bg-white/5 transition-colors"
+                  >
+                    <span
+                      class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
+                      :class="task.status === 'Done' ? 'bg-green-500 text-white' : task.status === 'In Progress' ? 'bg-blue-500 text-white' : 'border-2 border-white/30'"
+                    >
+                      <svg v-if="task.status === 'Done'" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                      </svg>
+                      <span v-else-if="task.status === 'In Progress'" class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                    </span>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-xs font-mono text-white/40">{{ task.key }}</span>
+                        <span v-if="task.epic" class="text-xs text-white/30">{{ task.epic }}</span>
+                      </div>
+                      <p class="text-sm text-white/90">{{ task.summary }}</p>
+                    </div>
+                    <span v-if="task.assignee" class="text-xs text-white/50">{{ task.assignee }}</span>
+                    <span
+                      class="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-full"
+                      :class="{
+                        'bg-green-500/20 text-green-400': task.status === 'Done',
+                        'bg-blue-500/20 text-blue-400': task.status === 'In Progress',
+                        'bg-gray-500/20 text-gray-400': task.status === 'To Do'
+                      }"
+                    >
+                      {{ task.status }}
+                    </span>
+                  </a>
+                </li>
+              </ul>
+
+              <!-- Empty state -->
+              <div v-if="modalTasks.length === 0" class="p-8 text-center text-white/50">
+                Brak zadań do wyświetlenia
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
   </div>
 </template>
 
@@ -599,5 +811,21 @@ const renderMarkdown = (text) => {
 .slide-leave-to {
   opacity: 0;
   transform: translateX(-30px);
+}
+
+/* Modal animations */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .relative,
+.modal-leave-to .relative {
+  transform: scale(0.95);
 }
 </style>
