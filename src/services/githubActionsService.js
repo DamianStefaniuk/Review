@@ -16,7 +16,15 @@ function getToken() {
 }
 
 /**
- * Get repo info from config
+ * Get selected repository ID from auth store
+ */
+function getSelectedRepoId() {
+  const authStore = useAuthStore()
+  return authStore.selectedRepo?.id || null
+}
+
+/**
+ * Get repo info from config (main repo where workflows are located)
  */
 async function getRepoInfo() {
   try {
@@ -42,6 +50,11 @@ export async function triggerJiraSyncWorkflow() {
     throw new Error('GitHub repository info not configured')
   }
 
+  const repositoryId = getSelectedRepoId()
+  if (!repositoryId) {
+    throw new Error('Nie wybrano projektu do synchronizacji')
+  }
+
   const { owner, repo, branch = 'main' } = repoInfo
 
   const response = await rateLimitedFetch(
@@ -54,7 +67,10 @@ export async function triggerJiraSyncWorkflow() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        ref: branch
+        ref: branch,
+        inputs: {
+          repository_id: repositoryId
+        }
       })
     }
   )
@@ -62,6 +78,10 @@ export async function triggerJiraSyncWorkflow() {
   if (!response.ok) {
     if (response.status === 403) {
       throw new Error('Brak uprawnień do uruchomienia synchronizacji. Token wymaga uprawnienia "workflow".')
+    }
+    if (response.status === 422) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(`Błąd parametrów workflow: ${error.message || 'Nieprawidłowy repository_id'}`)
     }
     const error = await response.json().catch(() => ({}))
     throw new Error(`Failed to trigger workflow: ${error.message || response.status}`)
