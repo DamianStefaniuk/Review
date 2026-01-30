@@ -1,0 +1,28 @@
+{
+  "github": {
+    "owner": "DamianStefaniuk",
+    "repo": "Review",
+    "branch": "main",
+    "organization": "plumspzoo"
+  },
+  "repositories": [
+    {
+      "id": "vent",
+      "name": "Tablica VENT",
+      "description": "Projekt wentylacji",
+      "dataRepo": {
+        "owner": "plumspzoo",
+        "repo": "Review-Data-Vent",
+        "dataPath": "sprints"
+      },
+      "jira": {
+        "boardName": "VENT"
+      }
+    }
+  ],
+  "labels": {
+    "goalPrefix": "cel",
+    "sideGoalPrefix": "extra",
+    "clientPattern": "\\[([^\\]]+)\\]"
+  }
+}

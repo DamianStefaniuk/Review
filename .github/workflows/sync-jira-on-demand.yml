@@ -1,0 +1,70 @@
+name: Sync Jira to Repository (On Demand)
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository_id:
+        description: 'Repository ID (vent)'
+        required: true
+        type: choice
+        options:
+          - vent
+        default: 'vent'
+      sprint_id:
+        description: 'Sprint ID to sync (leave empty for active sprint)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate sprint_id input
+        if: ${{ inputs.sprint_id != '' }}
+        run: |
+          if ! [[ "${{ inputs.sprint_id }}" =~ ^[0-9]+$ ]]; then
+            echo "Error: sprint_id must contain only digits"
+            exit 1
+          fi
+
+      - name: Set secrets based on repository
+        run: |
+          case "${{ inputs.repository_id }}" in
+            vent)
+              echo "JIRA_PROJECT_KEY=${{ secrets.JIRA_PROJECT_KEY_VENT }}" >> $GITHUB_ENV
+              echo "JIRA_BOARD_ID=${{ secrets.JIRA_BOARD_ID_VENT }}" >> $GITHUB_ENV
+              echo "DATA_REPO_NAME=Review-Data-Vent" >> $GITHUB_ENV
+              ;;
+          esac
+
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Set up Python
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Sync Jira data to Repository
+        env:
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER }}
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+          SPRINT_ID: ${{ inputs.sprint_id }}
+        run: |
+          if [ -n "$SPRINT_ID" ]; then
+            python scripts/sync_jira_to_repo.py --sprint-id "$SPRINT_ID"
+          else
+            python scripts/sync_jira_to_repo.py
+          fi
+
+      - name: Sync completed
+        run: echo "Jira data synced to repository ${{ env.DATA_REPO_NAME }} successfully"
