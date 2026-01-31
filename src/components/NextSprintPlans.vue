@@ -18,6 +18,10 @@ const props = defineProps({
   sprintId: {
     type: [Number, String],
     required: true
+  },
+  isSprintActive: {
+    type: Boolean,
+    default: true
   }
 })
 

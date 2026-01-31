@@ -9,10 +9,8 @@ import { enqueue, subscribe, getQueueStatus, PRIORITY } from '../services/operat
 import {
   fetchRepoFile,
   updateRepoFile,
-  createRepoFile,
   fetchRootFile,
   updateRootFile,
-  loadSprintFromRepo,
   uploadBinaryFile
 } from '../services/repoDataService'
 import {
@@ -304,7 +302,7 @@ export function useOperationQueue() {
   // Sprint Lifecycle Operations
   // ==========================================
 
-  async function queueCloseSprint(sprintId, createNew = true, callbacks = {}) {
+  async function queueCloseSprint(sprintId, callbacks = {}) {
     return queueOperation({
       type: 'closeSprint',
       key: `closeSprint-${sprintId}`,
@@ -332,48 +330,48 @@ export function useOperationQueue() {
           isActive: false
         }, currentSprintResult?.sha)
 
-        let newSprint = null
+        return { closedSprint: sprintData }
+      },
+      ...callbacks
+    })
+  }
 
-        // Step 3: Create new sprint if requested
-        if (createNew) {
-          const newSprintId = sprintId + 1
-          const today = new Date()
-          const twoWeeksLater = new Date(today)
-          twoWeeksLater.setDate(twoWeeksLater.getDate() + 14)
+  async function queueReopenSprint(sprintId, callbacks = {}) {
+    return queueOperation({
+      type: 'reopenSprint',
+      key: `reopenSprint-${sprintId}`,
+      priority: PRIORITY.CRITICAL,
+      timeout: 60000,
+      execute: async () => {
+        // 1. Load and reopen sprint
+        const filename = `sprint-${sprintId}.json`
+        const result = await fetchRepoFile(filename)
 
-          const formatDate = (date) => date.toISOString().split('T')[0]
-
-          newSprint = {
-            id: newSprintId,
-            name: `Sprint ${newSprintId}`,
-            status: 'active',
-            startDate: formatDate(today),
-            endDate: formatDate(twoWeeksLater),
-            goals: [],
-            sideGoals: [],
-            achievements: '',
-            tasks: [],
-            nextSprintPlans: sprintData.nextSprintPlans || '',
-            jiraTimelineUrl: sprintData.jiraTimelineUrl || '',
-            jiraBaseUrl: sprintData.jiraBaseUrl || '',
-            closedAt: null
-          }
-
-          // Create new sprint file
-          await createRepoFile(`sprint-${newSprintId}.json`, newSprint)
-
-          // Update current-sprint.json to point to new sprint
-          const currentSprintResult2 = await fetchRootFile('current-sprint.json')
-          await updateRootFile('current-sprint.json', {
-            currentSprintId: newSprintId,
-            isActive: true
-          }, currentSprintResult2?.sha)
+        if (!result) {
+          throw new Error(`Sprint ${sprintId} nie znaleziony`)
         }
 
-        return {
-          closedSprint: sprintData,
-          newSprint
+        const sprintData = result.content
+
+        // Validate - sprint must be closed
+        if (sprintData.status !== 'closed') {
+          throw new Error(`Sprint ${sprintId} nie jest zamknięty`)
         }
+
+        // Revert closing
+        sprintData.status = 'active'
+        sprintData.closedAt = null
+
+        await updateRepoFile(filename, sprintData, result.sha)
+
+        // 2. Update current-sprint.json
+        const currentSprintResult = await fetchRootFile('current-sprint.json')
+        await updateRootFile('current-sprint.json', {
+          currentSprintId: sprintId,
+          isActive: true
+        }, currentSprintResult?.sha)
+
+        return { reopenedSprint: sprintData }
       },
       ...callbacks
     })
@@ -444,6 +442,7 @@ export function useOperationQueue() {
     queueRenameMedia,
 
     // Sprint lifecycle
-    queueCloseSprint
+    queueCloseSprint,
+    queueReopenSprint
   }
 }

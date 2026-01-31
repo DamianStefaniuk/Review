@@ -2,8 +2,5 @@
 #
 # Dokumentacja: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
-# GitHub Actions workflows - wymagaja review przed merge
-/.github/workflows/ @damian.stefaniuk
-
-# Konfiguracja GitHub
-/.github/ @damian.stefaniuk
+# Wszystkie pliki - wymagają approve przed merge do main
+* @damian.stefaniuk

@@ -282,7 +282,6 @@ const executeDelete = async () => {
     <!-- Comments -->
     <div class="p-6 border-b border-gray-200">
       <CommentEditor
-        v-if="sprint.status === 'active'"
         :sprint-id="sprint.id"
         @submit="handleAddComment"
         class="mb-6"
@@ -353,7 +352,7 @@ const executeDelete = async () => {
               </div>
 
               <!-- Edit/Delete buttons -->
-              <div v-if="sprint.status === 'active'" class="flex items-center gap-1">
+              <div class="flex items-center gap-1">
                 <button
                   @click="startEditing(comment)"
                   class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"

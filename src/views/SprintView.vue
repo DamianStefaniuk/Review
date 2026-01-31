@@ -14,6 +14,8 @@ import NextSprintPlans from '../components/NextSprintPlans.vue'
 import ClientStats from '../components/ClientStats.vue'
 import JiraSyncButton from '../components/JiraSyncButton.vue'
 import CloseSprintButton from '../components/CloseSprintButton.vue'
+import ReopenSprintButton from '../components/ReopenSprintButton.vue'
+import CreateNewSprintButton from '../components/CreateNewSprintButton.vue'
 import DataRepoStatus from '../components/DataRepoStatus.vue'
 import MediaManager from '../components/MediaManager.vue'
 import PresentationSetup from '../components/PresentationSetup.vue'
@@ -311,17 +313,11 @@ onMounted(() => {
             @sync-complete="handleSyncComplete"
           />
 
-          <!-- Info for closed sprints -->
-          <span
+          <!-- Create new sprint button (only for authenticated users and CLOSED sprints) -->
+          <CreateNewSprintButton
             v-if="authStore.isAuthenticated && sprint.status === 'closed'"
-            class="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 bg-gray-100 rounded-lg"
-            title="Zamknięty sprint jest zarchiwizowany - dane zadań i celów nie są aktualizowane z Jira"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m10-6V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2h4" />
-            </svg>
-            Zarchiwizowany
-          </span>
+            @sprint-created="handleSyncComplete"
+          />
 
           <!-- Close sprint button (only for authenticated users and active sprints) -->
           <CloseSprintButton
@@ -331,11 +327,19 @@ onMounted(() => {
             :sprint-status="sprint.status"
           />
 
+          <!-- Reopen sprint button (only for authenticated users and closed sprints) -->
+          <ReopenSprintButton
+            v-if="authStore.isAuthenticated && sprint.status === 'closed'"
+            :sprint-id="sprint.id"
+            :sprint-name="sprint.name"
+            :sprint-status="sprint.status"
+          />
+
         </div>
       </header>
 
       <!-- Tabs -->
-      <nav class="mb-6 border-b border-gray-200 overflow-x-auto scrollbar-thin">
+      <nav class="mb-6 border-b border-gray-200 overflow-x-auto scrollbar-none">
         <div class="flex gap-3 sm:gap-6 min-w-max">
           <button
             @click="activeTab = 'overview'"
@@ -404,6 +408,7 @@ onMounted(() => {
               :key="'achievements-' + refreshKey"
               :content="sprint.achievements"
               :sprint-id="sprint.id"
+              :is-sprint-active="sprint.status === 'active'"
               @update="handleAchievementsUpdate"
             />
           </div>
@@ -450,6 +455,7 @@ onMounted(() => {
               :content="sprint.nextSprintPlans"
               :jira-timeline-url="sprint.jiraTimelineUrl"
               :sprint-id="sprint.id"
+              :is-sprint-active="sprint.status === 'active'"
               @update="handleNextSprintPlansUpdate"
             />
           </div>

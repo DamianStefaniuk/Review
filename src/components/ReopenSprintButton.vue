@@ -14,13 +14,13 @@ const props = defineProps({
   },
   sprintStatus: {
     type: String,
-    default: 'active'
+    default: 'closed'
   }
 })
 
-const emit = defineEmits(['sprint-closed'])
+const emit = defineEmits(['sprint-reopened'])
 
-const { queueCloseSprint } = useOperationQueue()
+const { queueReopenSprint } = useOperationQueue()
 
 const showModal = ref(false)
 const processing = ref(false)
@@ -29,7 +29,7 @@ const success = ref(false)
 
 const openModal = () => {
   if (!isRepoDataConfigured()) {
-    error.value = 'Nie jesteś zalogowany. Zaloguj się, aby zamknąć sprint.'
+    error.value = 'Nie jesteś zalogowany. Zaloguj się, aby otworzyć sprint.'
     return
   }
   error.value = null
@@ -42,19 +42,19 @@ const closeModal = () => {
   error.value = null
 }
 
-const handleCloseSprint = async () => {
+const handleReopenSprint = async () => {
   processing.value = true
   error.value = null
 
   try {
-    const result = await queueCloseSprint(props.sprintId, {
+    const result = await queueReopenSprint(props.sprintId, {
       onRetry: (attempt, maxRetries) => {
         error.value = `Konflikt danych, ponawiam (${attempt}/${maxRetries})...`
       }
     })
 
     success.value = true
-    emit('sprint-closed', result.closedSprint)
+    emit('sprint-reopened', result.reopenedSprint)
 
     // Close modal after success
     setTimeout(() => {
@@ -63,7 +63,7 @@ const handleCloseSprint = async () => {
       window.location.reload()
     }, 1500)
   } catch (err) {
-    error.value = err.message || 'Wystąpił błąd podczas zamykania sprintu'
+    error.value = err.message || 'Wystąpił błąd podczas otwierania sprintu'
   } finally {
     processing.value = false
   }
@@ -72,21 +72,21 @@ const handleCloseSprint = async () => {
 
 <template>
   <div class="relative">
-    <!-- Button - only show for active sprints -->
+    <!-- Button - only show for closed sprints -->
     <button
-      v-if="sprintStatus === 'active'"
+      v-if="sprintStatus === 'closed'"
       @click="openModal"
-      class="inline-flex items-center justify-center gap-2 px-4 py-2 h-10 text-sm font-medium text-orange-700 bg-orange-100 rounded-lg hover:bg-orange-200 transition-colors min-w-[160px]"
+      class="inline-flex items-center justify-center gap-2 px-4 py-2 h-10 text-sm font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200 transition-colors min-w-[160px]"
     >
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
-          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
         />
       </svg>
-      <span>Zamknij sprint</span>
+      <span>Otwórz sprint</span>
     </button>
 
     <!-- Error message if repository not configured -->
@@ -110,18 +110,18 @@ const handleCloseSprint = async () => {
         <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
           <!-- Header -->
           <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-              <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   stroke-width="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-gray-900">Zamknij sprint</h3>
+              <h3 class="text-lg font-semibold text-gray-900">Otwórz sprint</h3>
               <p class="text-sm text-gray-500">{{ sprintName || `Sprint ${sprintId}` }}</p>
             </div>
           </div>
@@ -133,13 +133,13 @@ const handleCloseSprint = async () => {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <p class="text-green-700 font-medium">Sprint został zamknięty!</p>
+            <p class="text-green-700 font-medium">Sprint został ponownie otwarty!</p>
           </div>
 
           <!-- Form -->
           <div v-else>
             <p class="text-gray-600 mb-4">
-              Czy na pewno chcesz zamknąć ten sprint? Ta operacja zaznaczy sprint jako zakończony.
+              Czy na pewno chcesz ponownie otworzyć ten sprint? Ta operacja przywróci sprint jako aktywny.
             </p>
 
             <!-- Error message -->
@@ -157,9 +157,9 @@ const handleCloseSprint = async () => {
                 Anuluj
               </button>
               <button
-                @click="handleCloseSprint"
+                @click="handleReopenSprint"
                 :disabled="processing"
-                class="flex-1 px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                class="flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <svg
                   v-if="processing"
@@ -170,7 +170,7 @@ const handleCloseSprint = async () => {
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                <span>{{ processing ? 'Zamykanie...' : 'Zamknij sprint' }}</span>
+                <span>{{ processing ? 'Otwieranie...' : 'Otwórz sprint' }}</span>
               </button>
             </div>
           </div>
