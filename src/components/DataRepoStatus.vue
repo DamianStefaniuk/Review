@@ -16,7 +16,7 @@ const activeTab = ref('user') // 'user' or 'admin'
       @click="showDetails = !showDetails"
       class="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors min-w-[160px]"
       :class="isConfigured
-        ? 'text-green-700 bg-green-100 hover:bg-green-200'
+        ? 'text-purple-700 bg-purple-100 hover:bg-purple-200'
         : 'text-amber-700 bg-amber-100 hover:bg-amber-200'"
       :title="isConfigured ? 'Połączenie aktywne' : 'Wymagane logowanie - kliknij po szczegóły'"
     >
