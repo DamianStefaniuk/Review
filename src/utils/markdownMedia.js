@@ -61,6 +61,12 @@ function createMediaRenderer() {
     return `<img src="${href}" alt="${text || ''}" title="${title || ''}" class="media-image" />`
   }
 
+  // Override link rendering to open in new tab
+  renderer.link = function(href, title, text) {
+    const titleAttr = title ? ` title="${title}"` : ''
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer"${titleAttr}>${text}</a>`
+  }
+
   return renderer
 }
 
@@ -80,7 +86,7 @@ export function renderMarkdownWithMedia(text) {
 
   const html = marked(text)
   return DOMPurify.sanitize(html, {
-    ADD_ATTR: ['data-media-path', 'data-src'],
+    ADD_ATTR: ['data-media-path', 'data-src', 'target', 'rel'],
     ADD_TAGS: ['video']
   })
 }

@@ -721,7 +721,10 @@ const statusConfig = {
                       <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                     </svg>
                   </span>
-                  <span class="flex-1">{{ goal.title }}</span>
+                  <span class="flex-1">
+                    {{ goal.title }}
+                    <span v-if="goal.client" class="text-purple-600 text-sm ml-2">({{ goal.client }})</span>
+                  </span>
                   <span class="ml-auto" :class="statusConfig[getGoalStatus(goal)].text">{{ goal.completionPercent }}%</span>
                 </div>
               </div>
@@ -934,6 +937,24 @@ const statusConfig = {
           <!-- Next plans slide -->
           <div v-else-if="currentSlideData?.type === 'nextPlans'" :key="'nextPlans'" class="max-w-4xl w-full">
             <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-6 sm:mb-8">Plany na następny sprint</h2>
+
+            <!-- Timeline link tile -->
+            <a
+              v-if="sprint.jiraTimelineUrl"
+              :href="sprint.jiraTimelineUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center justify-center gap-3 mb-6 px-6 py-4 bg-primary-100 hover:bg-primary-200 rounded-xl transition-colors group"
+            >
+              <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span class="text-lg font-medium text-primary-700">Timeline w Jira</span>
+              <svg class="w-5 h-5 text-primary-600 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+
             <div class="bg-gray-50 rounded-xl p-8">
               <div class="presentation-content" v-html="renderMarkdown(currentSlideData.data)"></div>
             </div>
@@ -1234,5 +1255,15 @@ const statusConfig = {
 
 .presentation-content :deep(h4) {
   font-size: 1.35rem;
+}
+
+.presentation-content :deep(a) {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.presentation-content :deep(a:hover) {
+  color: #1d4ed8;
 }
 </style>
