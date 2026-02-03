@@ -21,6 +21,11 @@ Format 2 (auto-detect by list markers):
 - [KLIENT] Cel poboczny 1   <- dash items = side goals
 - [KLIENT] Cel poboczny 2
 
+Client tag [KLIENT] can appear anywhere in the line:
+- "[KLIENT] Opis celu" - at the beginning
+- "Opis celu [KLIENT]" - at the end
+- "Opis [KLIENT] celu" - in the middle
+
 Labels:
 - cel1, cel2, ... - main goals
 - extra1, extra2, ... - side goals
@@ -32,15 +37,25 @@ from typing import List, Dict, Optional, Tuple
 
 def parse_client_from_text(text: str) -> Tuple[Optional[str], str]:
     """
-    Extract client name from text in format [CLIENT_NAME] rest of text.
+    Extract client name from text in format [CLIENT_NAME].
+
+    Searches for [CLIENT_NAME] anywhere in the text (start, middle, or end).
+    Examples:
+        "[KLIENT] Opis celu" -> ("KLIENT", "Opis celu")
+        "Opis celu [KLIENT]" -> ("KLIENT", "Opis celu")
+        "Opis [KLIENT] celu" -> ("KLIENT", "Opis celu")
 
     Returns:
         Tuple of (client_name or None, cleaned_text)
     """
-    match = re.match(r'^\[([^\]]+)\]\s*(.+)$', text.strip())
+    text = text.strip()
+    match = re.search(r'\[([^\]]+)\]', text)
     if match:
-        return match.group(1).strip(), match.group(2).strip()
-    return None, text.strip()
+        client = match.group(1).strip()
+        # Remove the [CLIENT] pattern from text and clean up extra spaces
+        cleaned = re.sub(r'\s*\[[^\]]+\]\s*', ' ', text).strip()
+        return client, cleaned
+    return None, text
 
 
 def _is_numbered_item(line: str) -> bool:
@@ -323,3 +338,18 @@ if __name__ == '__main__':
     result_2 = parse_sprint_description(test_description_2)
     print("Goals:", result_2['goals'])
     print("Side Goals:", result_2['sideGoals'])
+
+    # Test 3: Client at end of line
+    print("\n=== Test 3: Client at end of line ===")
+    test_description_3 = """
+1. Wdrożenie nowego modułu [KLIENT_A]
+2. Naprawa błędów [KLIENT_B]
+3. Optymalizacja bez klienta
+
+- Dokumentacja [KLIENT_A]
+- Przegląd kodu
+"""
+
+    result_3 = parse_sprint_description(test_description_3)
+    print("Goals:", result_3['goals'])
+    print("Side Goals:", result_3['sideGoals'])
